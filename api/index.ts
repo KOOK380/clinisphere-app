@@ -44,6 +44,37 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+  try {
+    const envCheck = {
+      has_url: !!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
+      has_key: !!(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY),
+      node_env: process.env.NODE_ENV,
+      is_vercel: !!process.env.VERCEL
+    };
+
+    if (!db) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Database client not initialized',
+        env_check: envCheck
+      });
+    }
+
+    const { count, error } = await db.from('users').select('*', { count: 'exact', head: true });
+    res.json({ 
+      status: 'ok', 
+      db_connection: error ? 'failed' : 'success',
+      db_error: error ? error.message : null,
+      user_count: count,
+      env_check: envCheck
+    });
+  } catch (err: any) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // Ensure an admin user exists (Optional: skip this in Vercel for faster cold starts)
 if (!process.env.VERCEL) {
   const ensureAdmin = async () => {
@@ -81,8 +112,19 @@ const authenticateToken = (req: any, res: any, next: any) => {
   });
 };
 
+// Database Check Middleware
+const checkDb = (req: any, res: any, next: any) => {
+  if (!db) {
+    return res.status(500).json({ 
+      error: 'Database connection not initialized', 
+      details: 'Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in your environment variables.' 
+    });
+  }
+  next();
+};
+
 // Auth Routes
-  app.post('/api/auth/register', async (req, res) => {
+  app.post('/api/auth/register', checkDb, async (req, res) => {
     try {
       const { name, email, password, specialty, city, phone } = req.body;
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -101,7 +143,7 @@ const authenticateToken = (req: any, res: any, next: any) => {
     }
   });
 
-  app.post('/api/auth/login', async (req, res) => {
+  app.post('/api/auth/login', checkDb, async (req, res) => {
     try {
       const { email, password } = req.body;
       const { data: userRows } = await db.from('users').select('*').eq('email', email);
