@@ -1,20 +1,5 @@
 {
   "version": 2,
-<<<<<<< HEAD
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/uploads/(.*)",
-      "destination": "/api/index.ts"
-    },
-    { "handle": "filesystem" },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-=======
   "builds": [
     {
       "src": "server.ts",
@@ -34,13 +19,8 @@
       "dest": "server.ts"
     },
     {
-      "src": "/uploads/(.*)",
-      "dest": "server.ts"
-    },
-    {
       "src": "/(.*)",
       "dest": "/index.html"
->>>>>>> 4d71e8dfa8df1107772dc1610da685be00ce288b
     }
   ]
 }
