@@ -1,5 +1,6 @@
 {
   "version": 2,
+<<<<<<< HEAD
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -13,6 +14,33 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+=======
+  "builds": [
+    {
+      "src": "server.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server.ts"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "server.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+>>>>>>> 4d71e8dfa8df1107772dc1610da685be00ce288b
     }
   ]
 }
