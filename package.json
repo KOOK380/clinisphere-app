@@ -4,15 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-<<<<<<< HEAD
-    "dev": "tsx api/index.ts",
-    "build:client": "vite build",
-    "build:server": "esbuild api/index.ts --bundle --platform=node --outfile=dist/server.js --format=esm --packages=external",
-=======
     "dev": "tsx server.ts",
     "build:client": "vite build",
     "build:server": "esbuild server.ts --bundle --platform=node --outfile=dist/server.js --format=esm --packages=external",
->>>>>>> 4d71e8dfa8df1107772dc1610da685be00ce288b
     "build": "npm run clean && npm run build:client && npm run build:server",
     "start": "NODE_ENV=production node dist/server.js",
     "clean": "rm -rf dist",
