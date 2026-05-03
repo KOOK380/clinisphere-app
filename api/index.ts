@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import slugify from 'slugify';
 import multer from 'multer';
-import { supabase as db } from '../src/db.js';
+import { supabase as db } from '../src/db';
 
 dotenv.config();
 
