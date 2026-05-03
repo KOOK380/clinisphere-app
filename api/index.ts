@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
@@ -8,11 +7,23 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import slugify from 'slugify';
 import multer from 'multer';
-import { supabase as db } from '../src/db';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://hkbkvnaptnhkoghuredj.supabase.co';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_plvXRp6EFpGGy6cckbklPQ_-fqQ44-A';
+
+let db: any = null;
+if (supabaseUrl && supabaseAnonKey) {
+  try {
+    db = createClient(supabaseUrl, supabaseAnonKey);
+  } catch (e) {
+    console.error('Supabase initialization failed:', e);
+  }
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || process.env.JWTKEY || 'super-secret-key-change-me';
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage(); // Use memory storage for Vercel (read-only filesystem)
@@ -42,7 +53,11 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+
+// Root path for the API
+app.get('/api', (req, res) => {
+  res.json({ message: 'API is running' });
+});
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -55,9 +70,9 @@ app.get('/api/health', async (req, res) => {
     };
 
     if (!db) {
-      return res.status(500).json({
-        status: 'error',
-        message: 'Database client not initialized',
+      return res.status(200).json({ // Use 200 so we can actually see the response
+        status: 'warning',
+        message: 'Database client not initialized (missing env vars?)',
         env_check: envCheck
       });
     }
@@ -71,7 +86,7 @@ app.get('/api/health', async (req, res) => {
       env_check: envCheck
     });
   } catch (err: any) {
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(500).json({ status: 'error', message: err.message, stack: err.stack });
   }
 });
 
@@ -115,9 +130,9 @@ const authenticateToken = (req: any, res: any, next: any) => {
 // Database Check Middleware
 const checkDb = (req: any, res: any, next: any) => {
   if (!db) {
-    return res.status(500).json({ 
+    return res.status(503).json({ 
       error: 'Database connection not initialized', 
-      details: 'Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in your environment variables.' 
+      details: 'Please ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in your Vercel Environment Variables.' 
     });
   }
   next();
@@ -161,7 +176,7 @@ const checkDb = (req: any, res: any, next: any) => {
   });
 
   // Course Routes
-  app.get('/api/courses', async (req, res) => {
+  app.get('/api/courses', checkDb, async (req, res) => {
     try {
       const { category, level, minPrice, maxPrice, search, limit = 10, offset = 0 } = req.query;
       
@@ -193,7 +208,7 @@ const checkDb = (req: any, res: any, next: any) => {
     }
   });
 
-  app.get('/api/courses/:slug', async (req, res) => {
+  app.get('/api/courses/:slug', checkDb, async (req, res) => {
     try {
       const { data: courseRows, error } = await db.from('courses')
         .select('*, creators:instructors(name, bio, image), modules(*, lessons(*))')
@@ -222,7 +237,7 @@ const checkDb = (req: any, res: any, next: any) => {
     }
   });
 
-  app.post('/api/courses', authenticateToken, async (req: any, res) => {
+  app.post('/api/courses', authenticateToken, checkDb, async (req: any, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
     try {
       const data = req.body;
@@ -587,14 +602,24 @@ const checkDb = (req: any, res: any, next: any) => {
 
   // --- VITE MIDDLEWARE ---
   if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      const { createServer } = await import('vite');
+      const vite = await createServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.warn('Vite middleware not loaded:', e);
+    }
   } else {
-    // On Vercel or in production, we don't serve static files from here 
-    // Vercel serves them from the root based on vercel.json rewrites or output directory
+    const distPath = path.join(process.cwd(), 'dist');
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
   }
 
   if (!process.env.VERCEL) {
