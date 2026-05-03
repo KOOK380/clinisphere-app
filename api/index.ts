@@ -40,44 +40,48 @@ const upload = multer({
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-async function startServer() {
-  app.use(cors());
-  app.use(express.json());
-  app.use('/uploads', express.static('uploads'));
-  
-  // Ensure an admin user exists
-  try {
-    const { data: adminRows } = await db.from('users').select('*').eq('role', 'admin');
-    const admin = adminRows?.[0];
-    if (!admin) {
-      const hashedPass = await bcrypt.hash('admin123', 10);
-      await db.from('users').insert([{
-        name: 'Admin',
-        email: 'admin@clinisphere.com',
-        password: hashedPass,
-        role: 'admin'
-      }]);
-      console.log('Default admin created: admin@clinisphere.com / admin123');
+app.use(cors());
+app.use(express.json());
+app.use('/uploads', express.static('uploads'));
+
+// Ensure an admin user exists (Optional: skip this in Vercel for faster cold starts)
+if (!process.env.VERCEL) {
+  const ensureAdmin = async () => {
+    try {
+      const { data: adminRows } = await db.from('users').select('*').eq('role', 'admin');
+      const admin = adminRows?.[0];
+      if (!admin) {
+        const hashedPass = await bcrypt.hash('admin123', 10);
+        await db.from('users').insert([{
+          name: 'Admin',
+          email: 'admin@clinisphere.com',
+          password: hashedPass,
+          role: 'admin'
+        }]);
+        console.log('Default admin created: admin@clinisphere.com / admin123');
+      }
+    } catch (e) {
+      console.error('Initial admin check failed, db might not be ready:', e);
     }
-  } catch (e) {
-    console.error('Initial admin check failed, db might not be ready:', e);
-  }
-
-  // Auth Middleware
-  const authenticateToken = (req: any, res: any, next: any) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
-    jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-      if (err) return res.status(403).json({ error: 'Forbidden' });
-      req.user = user;
-      next();
-    });
   };
+  ensureAdmin();
+}
 
-  // Auth Routes
+// Auth Middleware
+const authenticateToken = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) return res.status(403).json({ error: 'Forbidden' });
+    req.user = user;
+    next();
+  });
+};
+
+// Auth Routes
   app.post('/api/auth/register', async (req, res) => {
     try {
       const { name, email, password, specialty, city, phone } = req.body;
@@ -556,8 +560,5 @@ async function startServer() {
       console.log(`Server running on http://localhost:${PORT}`);
     });
   }
-}
-
-startServer();
 
 export default app;
