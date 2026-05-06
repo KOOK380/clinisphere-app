@@ -43,26 +43,9 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
-// Test connection on startup
-pool.connect((err, client, release) => {
-  if (connectionString) {
-    try {
-      const url = new URL(connectionString);
-      console.log(`Attempting to connect to database at ${url.host}${url.pathname}`);
-    } catch (e) {
-      console.log('Attempting to connect to database (URL could not be parsed securely)');
-    }
-  } else {
-    console.log('No database connection string provided on startup.');
-  }
-  
-  if (err) {
-    console.error('DATABASE INITIAL CONNECTION ERROR:', err.message, err.stack);
-  } else {
-    console.log('Successfully connected to PostgreSQL database');
-    release();
-  }
-});
+// Database is connected lazily by the pg Pool upon first query.
+// No eager connection test is performed to prevent Vercel Build Step crashes and cold start issues.
+
 
 let db: any = null;
 if (supabaseUrl && supabaseAnonKey) {
@@ -82,12 +65,35 @@ async function query(text: string, params?: any[], silent: boolean = false) {
     return res;
   } catch (err: any) {
     if (!silent) {
-      console.error('DATABASE QUERY ERROR:', {
-        text,
-        error: err.message,
-        stack: err.stack,
-        code: err.code
-      });
+      if (err.message && (err.message.includes('ENOTFOUND') || err.message.includes('ECONNREFUSED'))) {
+        console.error('');
+        console.error('========================================================================');
+        console.error(' ❌ SUPABASE CONNECTION ERROR DETECTED ON VERCEL');
+        console.error('========================================================================');
+        console.error(' Error:', err.message);
+        console.error('');
+        console.error(' WHY THIS HAPPENS:');
+        console.error(' Vercel Serverless Functions do not support connecting to IPv6 domains.');
+        console.error(' Supabase direct domains (db.xxxx.supabase.co) are now IPv6-only.');
+        console.error('');
+        console.error(' HOW TO FIX IT:');
+        console.error(' 1. Go to your Supabase Dashboard -> Project Settings -> Database');
+        console.error(' 2. Scroll down to "Connection pooling" and ensure it is checked/enabled.');
+        console.error(' 3. Copy the "Connection Pooler" URL (it usually starts with aws-0-...).');
+        console.error(' 4. Go to Vercel -> Your Project -> Settings -> Environment Variables.');
+        console.error(' 5. Update your DATABASE_URL value to that new Connection Pooler URL.');
+        console.error('    (Make sure it ends in :6543/postgres and NOT :5432).');
+        console.error(' 6. Redeploy your Vercel project.');
+        console.error('========================================================================');
+        console.error('');
+      } else {
+        console.error('DATABASE QUERY ERROR:', {
+          text,
+          error: err.message,
+          stack: err.stack,
+          code: err.code
+        });
+      }
     }
     throw err;
   }
