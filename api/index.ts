@@ -1169,7 +1169,7 @@ const checkDb = (req: any, res: any, next: any) => {
         const checkoutData = {
             amount: totalPrice,
             currency: "dzd",
-            success_url: `${protocol}://${hostname}/checkout/success?order_id=${orderId}`,
+            success_url: `${protocol}://${hostname}/dashboard?payment=success&order_id=${orderId}`,
             failure_url: `${protocol}://${hostname}/checkout/failure?order_id=${orderId}`,
             webhook_endpoint: `${protocol}://${hostname}/api/webhooks/chargily`,
             metadata: [

@@ -180,8 +180,8 @@ export default function App() {
                     <Route 
                       path="/dashboard" 
                       element={
-                        user && user.role === 'user' ? (
-                          <Dashboard user={user} />
+                        user ? (
+                          user.role === 'admin' ? <Navigate to="/admin" /> : <Dashboard user={user} />
                         ) : (
                           <Navigate to="/login" />
                         )

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { BookOpen, Clock, PlayCircle, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Course, User } from '../types';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +15,22 @@ export default function Dashboard({ user }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { t } = useTranslation();
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('payment') === 'success') {
+      // Clear cart on payment success
+      localStorage.removeItem('cart');
+      // Set a temporary success message (optional, you could use a state)
+      // We will just clear the URL parameters so it doesn't stay there forever
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+      setTimeout(() => {
+        alert("Payment Successful! Thank you for your order.");
+      }, 500);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchMyCourses = async () => {
