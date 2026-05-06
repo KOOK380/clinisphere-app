@@ -24,9 +24,20 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABA
 
 const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL || 'postgresql://postgres:b263AGY5JTSRPFrh@db.hkbkvnaptnhkoghuredj.supabase.co:6543/postgres';
 
+if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+  console.warn('');
+  console.warn('=========================================');
+  console.warn(' DATABASE CONNECTION STRING IS MISSING IN ENV! ');
+  console.warn(' Falling back to hardcoded database URL. ');
+  console.warn(' Please set DATABASE_URL in your Vercel ');
+  console.warn(' Environment Variables to your Supabase IPv4 Pooler URL. ');
+  console.warn('=========================================');
+  console.warn('');
+}
+
 const pool = new Pool({
-  connectionString,
-  ssl: connectionString.includes('localhost') ? false : {
+  connectionString: connectionString || '',
+  ssl: connectionString && connectionString.includes('localhost') ? false : {
     rejectUnauthorized: false
   },
   connectionTimeoutMillis: 5000,
@@ -34,9 +45,16 @@ const pool = new Pool({
 
 // Test connection on startup
 pool.connect((err, client, release) => {
-  const url = new URL(connectionString);
-  console.log(`Attempting to connect to database at ${url.host}${url.pathname}`);
-
+  if (connectionString) {
+    try {
+      const url = new URL(connectionString);
+      console.log(`Attempting to connect to database at ${url.host}${url.pathname}`);
+    } catch (e) {
+      console.log('Attempting to connect to database (URL could not be parsed securely)');
+    }
+  } else {
+    console.log('No database connection string provided on startup.');
+  }
   
   if (err) {
     console.error('DATABASE INITIAL CONNECTION ERROR:', err.message, err.stack);
