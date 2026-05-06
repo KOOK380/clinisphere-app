@@ -39,7 +39,7 @@ export default function Register({ onLogin }: RegisterProps) {
       if (!res.ok) throw new Error(data.error || 'Registration failed');
 
       onLogin(data.user, data.token);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -79,12 +79,12 @@ export default function Register({ onLogin }: RegisterProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
               {/* Fields */}
               {[
-                { name: 'name', label: 'Nom Complet', placeholder: 'Dr. Jean Dupont', type: 'text' },
-                { name: 'email', label: 'Email', placeholder: 'contact@exemple.com', type: 'email' },
-                { name: 'specialty', label: 'Spécialité', placeholder: 'Gynécologie, Cardiologie...', type: 'text' },
-                { name: 'city', label: 'Ville', placeholder: 'Abidjan, Paris...', type: 'text' },
-                { name: 'phone', label: 'Téléphone', placeholder: '+225...', type: 'tel' },
-                { name: 'password', label: 'Mot de passe', placeholder: '••••••••', type: 'password' }
+                { name: 'name', label: t('auth.register.form.name'), placeholder: t('auth.register.form.namePlaceholder'), type: 'text' },
+                { name: 'email', label: t('auth.register.form.email'), placeholder: t('auth.register.form.emailPlaceholder'), type: 'email' },
+                { name: 'specialty', label: t('auth.register.form.specialty'), placeholder: t('auth.register.form.specialtyPlaceholder'), type: 'text' },
+                { name: 'city', label: t('auth.register.form.city'), placeholder: t('auth.register.form.cityPlaceholder'), type: 'text' },
+                { name: 'phone', label: t('auth.register.form.phone'), placeholder: t('auth.register.form.phonePlaceholder'), type: 'tel' },
+                { name: 'password', label: t('auth.register.form.password'), placeholder: t('auth.register.form.passwordPlaceholder'), type: 'password' }
               ].map((field) => (
                 <div key={field.name} className="space-y-4">
                   <label className="text-[10px] font-black text-[#3B2A8F]/40 uppercase tracking-[0.3em] pl-2">{field.label}</label>

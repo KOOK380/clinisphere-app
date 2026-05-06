@@ -40,13 +40,13 @@ export default function Instructors() {
           className="inline-flex items-center px-4 py-1.5 rounded-full bg-blue-50 text-[#1E3A8A] text-sm font-medium mb-6 border border-blue-100"
         >
           <GraduationCap size={16} className="mr-2" />
-          Nos Experts & Formateurs
+          {t('instructors.badge')}
         </motion.div>
         <h1 className="text-4xl md:text-5xl font-black text-[#1B1B1B] mb-6 tracking-tight">
-          Apprenez avec les Meilleurs
+          {t('instructors.title')}
         </h1>
         <p className="text-xl text-gray-500 max-w-2xl mx-auto font-medium">
-          Découvrez notre équipe de professionnels de santé passionnés par la transmission du savoir.
+          {t('instructors.desc')}
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export default function Instructors() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1E3A8A] transition-colors" size={20} />
           <input
             type="text"
-            placeholder="Rechercher par nom ou spécialité..."
+            placeholder={t('instructors.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-12 pr-6 py-4 bg-white border-2 border-gray-100 rounded-2xl focus:border-[#1E3A8A] outline-none transition-all shadow-sm group-hover:shadow-md"

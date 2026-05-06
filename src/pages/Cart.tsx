@@ -118,7 +118,7 @@ export default function Cart({ cart, removeFromCart, user }: CartProps) {
                     </div>
                     <div className="space-y-6">
                       <Link 
-                        to={user ? "/paiement" : "/login?redirect=/cart"}
+                        to={user ? "/checkout" : "/login?redirect=/cart"}
                         className="w-full py-6 rounded-[1.5rem] bg-[#3B2A8F] text-white hover:bg-[#2d1f70] font-black uppercase tracking-widest text-[11px] flex items-center justify-center space-x-4 transition-all shadow-2xl shadow-[#3B2A8F]/20 active:scale-95"
                       >
                         <span>{t('boutique.cart.checkout')}</span>

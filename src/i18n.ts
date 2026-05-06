@@ -7,76 +7,164 @@ const resources = {
       navbar: {
         home: 'Accueil',
         formations: 'Formations',
-        boutique: 'Boutique',
+        inscription: 'Inscription',
+        paiement: 'Paiement',
+        events: 'Événements',
+        eventsSubtitle: 'Explorez les ateliers, séminaires et événements médicaux à venir',
         services: 'Services',
+        articles: 'Articles',
         contact: 'Contact',
-        instructors: 'Instructeurs',
-        login: 'Se Connecter',
-        register: "S'inscrire",
+        login: 'Se Connecter / S\'inscrire',
         logout: 'Déconnexion',
-        admin: 'Admin'
+        admin: 'Admin',
+        dashboard: 'Tableau de bord'
+      },
+      dashboard: {
+        badge: 'Espace Personnel',
+        welcome: 'Bienvenue, {{name}}',
+        desc: 'Accédez à vos formations et suivez votre progression.',
+        loading: 'Chargement de vos cours...',
+        noCourses: 'Aucune formation trouvée',
+        noCoursesDesc: "Vous n'avez pas encore de formations actives. Explorez notre catalogue pour commencer votre apprentissage.",
+        catalogButton: 'Voir le catalogue',
+        continue: 'Continuer',
+        lesson: 'leçon',
+        completed: 'Complété'
       },
       home: {
-        badge: 'Excellence en Formation Médicale',
-        title: 'Plateforme De Formation',
-        titleAccent: 'Structurée & Pratique',
-        registerCta: "S'inscrire",
-        catalogueCta: 'Catalogue',
+        hero: {
+          fallbackTitle: 'Plateforme De Formation Médicale Structurée & Pratique',
+          fallbackBtn: "S'inscrire",
+          registerBtn: "S'INSCRIRE",
+          catalogueBtn: "CATALOGUE"
+        },
         features: {
-          video: {
-            title: 'Cours Vidéo',
-            desc: "Accédez à des centaines d'heures de contenu médical de haute qualité."
+          courses: {
+            title: 'Cours',
+            desc: 'Cours structurés avec cas cliniques'
           },
-          interactive: {
-            title: 'Quiz Interactifs',
-            desc: 'Testez vos connaissances après chaque module avec nos examens.'
+          quiz: {
+            title: 'Quiz',
+            desc: 'Plus de 30 quiz corrigés inclus'
           },
           support: {
-            title: 'Support 24/7',
-            desc: "Une équipe d'experts dédiée pour répondre à toutes vos questions."
+            title: 'Support',
+            desc: 'Accès en ligne sécurisé 24h/24 & 7j/7'
           }
         },
-        instructors: {
-          badge: 'Nos Formateurs',
-          title: 'Accompagnement par des',
-          titleAccent: 'Experts Reconnus',
-          desc: "Apprenez auprès de spécialistes qui pratiquent au quotidien. Nos formations sont le fruit de années d'expérience clinique et académique.",
-          dr1: {
-            name: 'Dr Nadine David',
-            role: 'Spécialiste en Gynécologie-Obstétrique',
-            focus: 'Échographie du Coeur Foetal'
-          },
-          dr2: {
-            name: 'Pr Loïc Sentilhes',
-            role: 'Professeur des Universités',
-            focus: 'Doppler Foetal & Médecine Maternelle'
-          }
-        },
-        stats: {
-          instructors: 'Instructeurs',
-          doctors: 'Médecins Formés',
-          secure: 'Plateforme Sécurisée'
+        intro: {
+          title: 'Maîtrisez le cœur fœtal avec des cours structurés et +30 quiz corrigés et perfectionnez votre Doppler grâce à des cours et des cas cliniques réels',
+          cta: 'En savoir Plus'
         },
         upcoming: {
           title: 'Formations à venir',
-          desc: 'Inscrivez-vous dès maintenant pour nos prochaines sessions de formation immersive.',
-          viewAll: 'Voir tout le catalogue'
-        },
-        cta: {
-          title: 'Prêt à transformer votre pratique ?',
-          desc: 'Rejoignez des centaines de praticiens qui ont déjà amélioré leur expertise avec Clinisphere.',
-          button: 'Créer un compte gratuitement'
+          subtitle: 'Formation pratique destinée aux gynécologues',
+          details: 'Plus de détail',
+          colpo: {
+            tag: 'Colposcopie',
+            title: 'Formation En Colposcopie Niveau 1 & Niveau 2',
+            desc: 'Formation pratique destinée aux gynécologues souhaitant approfondir leurs compétences en colposcopie diagnostique et thérapeutique..'
+          },
+          prolapsus: {
+            tag: 'Prolapsus',
+            title: 'FORMATION PRATIQUE EN CHIRURGIE VAGINALE PAR VOIE BASSE – PROLAPSUS',
+            desc: 'Formation 100 % pratique, destinée aux gynécologues souhaitant maîtriser les techniques de prise en charge du prolapsus par voie vaginale.'
+          },
+          hystero: {
+            tag: 'Hysteroscopie',
+            title: 'FORMATION AVANCÉE EN HYSTÉROSCOPIE OPÉRATOIRE',
+            desc: "Destinée aux gynécologues maîtrisant l'hystéroscopie diagnostique (biopsies, polypectomies simples), .."
+          }
         }
       },
+      instructors: {
+        badge: 'Nos Experts & Formateurs',
+        title: 'Apprenez avec les Meilleurs',
+        desc: 'Découvrez notre équipe de professionnels de santé passionnés par la transmission du savoir.',
+        searchPlaceholder: 'Rechercher par nom ou spécialité...',
+        viewProfile: 'Voir le profil',
+        noResults: 'Aucun formateur trouvé',
+        notFound: 'Instructeur non trouvé',
+        backToList: 'Retour aux instructeurs',
+        expertTag: 'Formateur Expert',
+        contact: 'Contacter',
+        share: 'Partager',
+        about: 'À propos de',
+        coursesBy: 'Formations par',
+        stats: {
+          courses: 'Cours',
+          students: 'Étudiants',
+          rating: 'Note',
+          experience: 'Expérience'
+        }
+      },
+      events: {
+        title: 'Événements à venir',
+        desc: 'Inscrivez-vous à nos séminaires, webinaires et ateliers exclusifs.',
+        free: 'Gratuit',
+        paid: 'Payant',
+        register: 'S\'inscrire',
+        buy: 'Acheter maintenant',
+        viewDetails: 'Voir les détails',
+        upcoming: 'Événements à venir',
+        past: 'Événements passés',
+        noEvents: 'Aucun événement à venir pour le moment.',
+        all: 'Tous',
+        location: 'Lieu',
+        date: 'Date & Heure',
+        search: 'Rechercher un événement...',
+        noEventsFound: 'Aucun événement trouvé',
+        tryDifferentFilter: 'Essayez de modifier vos filtres ou votre recherche.',
+        backToEvents: 'Retour aux événements',
+        time: 'Heure',
+        filter: {
+          all: 'Tous',
+          free: 'Gratuits',
+          paid: 'Payants'
+        },
+        registration: 'Inscription',
+        freeAdmission: 'Entrée Gratuite',
+        registerNow: 'S\'inscrire maintenant',
+        buyTicket: 'Acheter un billet',
+        limitedSeats: 'Places limitées - Réservez vite !',
+        followUpdate: 'Suivez nos actualités',
+        socialPrompt: 'Rejoignez-nous sur Instagram pour ne rien manquer de nos prochains événements et formations en direct.',
+        benefits: {
+          access: 'Accès complet aux conférences',
+          materials: 'Supports de formation inclus',
+          certification: 'Attestation de participation',
+          networking: 'Session de networking'
+        },
+        about: "À propos de l'événement",
+        bookSeat: 'Réserver ma place',
+        program: 'Programme'
+      },
       footer: {
-        desc: 'Votre partenaire de confiance pour la formation médicale continue et la pratique clinique avancée.',
-        links: 'Exploration',
+        desc: 'Expertise et formation médicale structurée pour les professionnels de santé. Excellence académique et pratique clinique.',
+        navigation: 'Navigation',
         contact: 'Nous Contacter',
-        newsletter: 'Newsletter',
-        newsletterDesc: 'Rejoignez 15,000+ praticiens informés.',
-        subscribe: "S'abonner",
-        privacy: 'Confidentialité',
-        legal: 'Mentions Légales'
+        newsletter: 'Abonnez-vous',
+        newsletterSub: 'Recevez nos dernières mises à jour de formations.',
+        emailPlaceholder: 'Votre email',
+        subscribe: 'S\'abonner maintenant',
+        privacy: 'Politique de Confidentialité',
+        legal: 'CGU / CGV',
+        rights: 'Tous droits réservés.'
+      },
+      blog: {
+        badge: 'Blog & Actualités',
+        title: 'Nos derniers',
+        titleAccent: 'Articles',
+        category: 'Médecine',
+        readMore: 'Lire la suite',
+        noArticles: 'Aucun article disponible pour le moment.',
+        notFound: 'Article non trouvé',
+        backToList: 'Retour aux articles',
+        shareArticle: 'Partager cet article',
+        shareDesc: 'Faites circuler l\'information dans votre réseau professionnel.',
+        readyToLearn: 'Prêt à approfondir vos compétences ?',
+        readyDesc: 'Découvrez nos formations certifiantes dispensées par des experts.',
+        seeCourses: 'Voir nos formations'
       },
       formations: {
         badge: 'Catalogue Complet',
@@ -104,6 +192,19 @@ const resources = {
           backToStore: 'Retour à la boutique'
         }
       },
+      courseDetail: {
+        notFound: 'Cours non trouvé',
+        backToDashboard: 'Retour au tableau de bord',
+        selectLesson: 'Sélectionnez une leçon',
+        completed: 'Complété',
+        noVideo: 'Aucune vidéo disponible',
+        inProgress: 'En cours',
+        markAsCompleted: 'Marquer comme terminé',
+        aboutLesson: 'À propos de cette leçon',
+        noDescription: 'Aucune description disponible',
+        yourInstructor: 'Votre Formateur',
+        curriculum: 'Sommaire du Cours'
+      },
       auth: {
         login: {
           badge: 'Espace Membre',
@@ -112,7 +213,9 @@ const resources = {
           button: 'Se Connecter',
           loading: 'Connexion en cours...',
           noAccount: 'Pas encore de compte ?',
-          registerLink: 'Créer un compte'
+          registerLink: 'Créer un compte',
+          emailPlaceholder: 'Email Professionnel',
+          passwordPlaceholder: 'Mot de passe'
         },
         register: {
           badge: 'Inscription Membre',
@@ -121,12 +224,27 @@ const resources = {
           button: 'Créer mon compte',
           loading: 'Création de compte...',
           hasAccount: 'Vous avez déjà un compte ?',
-          loginLink: 'Connectez-vous ici'
+          loginLink: 'Connectez-vous ici',
+          form: {
+            name: 'Nom Complet',
+            namePlaceholder: 'Dr. Jean Dupont',
+            email: 'Email',
+            emailPlaceholder: 'contact@exemple.com',
+            specialty: 'Spécialité',
+            specialtyPlaceholder: 'Gynécologie, Cardiologie...',
+            city: 'Ville',
+            cityPlaceholder: 'Abidjan, Paris...',
+            phone: 'Téléphone',
+            phonePlaceholder: '+225...',
+            password: 'Mot de passe',
+            passwordPlaceholder: '••••••••',
+          }
         }
       },
       course: {
         badge: 'Formation',
         unlimited: 'Accès illimité',
+        instructor: 'Formateur',
         enroll: "S'inscrire",
         addToCart: 'Ajouter au panier',
         items: {
@@ -180,6 +298,71 @@ const resources = {
           certified: 'Plateforme Certifiée & Sécurisée'
         }
       },
+      services_page: {
+        title: 'Formations à venir',
+        desc: 'Découvrez les détails de chaque cours avec une image dédiée pour mieux visualiser votre apprentissage.',
+        courses: {
+          colpo: {
+            title: 'Formation en Colposcopie Niveau 1 & Niveau 2',
+            desc: 'Formation pratique destinée aux gynécologues souhaitant approfondir leurs compétences en colposcopie diagnostique et thérapeutique. Animée par le Professeur Nawel Merrouche, chef de service et spécialiste renommée du dépistage cervicovaginal, cette formation couvre :',
+            list: [
+              'Diagnostic et prise en charge des lésions cervicales précancéreuses (CIN 1, 2, 3)',
+              'Détection des condylomes et polypes cervicaux',
+              'Techniques de biopsie ciblée et interprétation des anomalies',
+              'Utilisation des solutions de contraste et suivi des lésions'
+            ],
+            locations: {
+              l1: 'Alger Niveau 1 : 🗓️ 7-9 Mai 2026',
+              l2: 'Alger Niveau 2 : 🗓️ 24-26 Septembre 2026'
+            }
+          },
+          prolapsus: {
+            title: 'FORMATION PRATIQUE EN CHIRURGIE VAGINALE – PROLAPSUS',
+            desc: 'Ce programme de formation 100 % pratique est conçu pour les gynécologues qui souhaitent maîtriser les techniques de prise en charge du prolapsus par voie vaginale.',
+            desc2: 'Animé par le Professeur Michel Cosson, expert renommé en chirurgie pelvienne, ce cours permet aux participants de pratiquer et d\'acquérir des techniques chirurgicales reproductibles dans des conditions réelles.',
+            objectives: 'Objectifs :',
+            list: [
+              'Maîtrise des techniques de correction du prolapsus par voie vaginale',
+              'Standardisation des procédures chirurgicales',
+              'Optimisation des résultats fonctionnels'
+            ]
+          },
+          hystero: {
+            title: 'FORMATION AVANCÉE EN HYSTÉROSCOPIE OPÉRATOIRE',
+            desc: 'Destiné aux gynécologues expérimentés en hystéroscopie diagnostique (biopsies, polypectomies simples), ce programme de formation permet de progresser vers une pratique chirurgicale plus affinée.',
+            desc2: 'Animé par le Professeur Hervé Fernandez, expert en chirurgie hystéroscopique, il se concentre sur l\'acquisition de techniques chirurgicales précises et reproductibles.',
+            indications: 'Les indications couvertes incluent :',
+            list: 'Synéchies utérines - Isthmocèle - Septum utérin - Pathologies intracavitaires courantes'
+          }
+        },
+        contact: {
+          title: 'Contactez-nous',
+          desc: 'Posez vos questions ou demandez des détails sur nos prochaines formations.',
+          labels: {
+            phone: 'Téléphone',
+            email: 'Email'
+          },
+          hours: {
+            title: 'Heures d\'Ouverture',
+            desc: 'Notre bureau administratif est ouvert pour les demandes et le support du lundi au vendredi, de 09h00 à 18h00 (GMT+1). Nous répondons généralement aux emails dans les 24 heures.'
+          },
+          locations: {
+            title: 'Lieux de Formation',
+            desc: 'Nos sessions pratiques se déroulent dans des centres de formation médicale de pointe à Alger et dans des infrastructures CHU partenaires à travers l\'Algérie et à l\'international.'
+          },
+          commitment: {
+            title: 'Engagement Support',
+            desc: 'Nous nous engageons à fournir un accompagnement personnalisé à chaque professionnel de santé. Si vous avez des demandes spécifiques de curriculum ou besoin d\'aide pour la planification des sessions, n\'hésitez pas à nous contacter.'
+          },
+          form: {
+            name: 'Votre nom',
+            namePlaceholder: 'Entrez votre nom',
+            email: 'Votre email*',
+            emailPlaceholder: 'Entrez votre email',
+            submit: 'Envoyer'
+          }
+        }
+      },
       contact: {
         badge: 'Contactez-nous',
         title: 'Parlons de vos',
@@ -217,6 +400,8 @@ const resources = {
           users: 'Utilisateurs',
           instructors: 'Instructeurs',
           settings: 'Paramètres',
+          events: 'Événements',
+          articles: 'Articles',
           backToSite: 'Retour au site',
           logout: 'Déconnexion'
         },
@@ -231,7 +416,14 @@ const resources = {
           footerLogo: 'Logo Pied de page',
           logoLink: 'Lien du logo (redirection)',
           saveSuccess: 'Paramètres enregistrés avec succès',
-          uploadLogo: 'Télécharger le logo'
+          uploadLogo: 'Télécharger le logo',
+          smtpConfig: 'Configuration SMTP (Contact)',
+          smtpHost: 'Hôte SMTP',
+          smtpPort: 'Port SMTP',
+          smtpUser: 'Utilisateur SMTP',
+          smtpPass: 'Mot de passe SMTP',
+          smtpFrom: 'Expéditeur (From Email)',
+          smtpAdmin: 'Email de destination (Admin)'
         },
         slider: {
           title: 'Gestion du Slider Accueil',
@@ -255,6 +447,7 @@ const resources = {
           activeCourses: 'Cours Actifs',
           users: 'Utilisateurs',
           messages: 'Messages',
+          totalOrders: 'Commandes Totales',
           recentOrders: 'Commandes Récentes'
         },
         courses: {
@@ -278,7 +471,13 @@ const resources = {
           intermediate: 'Intermédiaire',
           advanced: 'Avancé',
           defaultModuleTitle: 'Nouveau Module',
-          defaultLessonTitle: 'Nouvelle Leçon'
+          defaultLessonTitle: 'Nouvelle Leçon',
+          successCreate: 'Cours créé avec succès',
+          successUpdate: 'Cours mis à jour',
+          loadError: 'Format de cours non trouvé',
+          settingsAndPricing: 'Paramètres et Tarification',
+          freePreview: 'Aperçu gratuit',
+          saveCourse: 'Enregistrer le Cours'
         },
         instructors: {
           title: 'Instructeurs répertoriés',
@@ -292,11 +491,48 @@ const resources = {
           imageUrl: "URL de l'image",
           dateAdded: 'Date Ajout'
         },
+        articles: {
+          title: 'Articles répertoriés',
+          addArticle: 'Ajouter un article',
+          editArticle: 'Modifier l\'article',
+          newArticle: 'Ajouter un nouvel article',
+          excerpt: 'Extrait',
+          content: 'Contenu',
+          status: 'Statut',
+          author: 'Auteur',
+          category: 'Catégorie',
+          deleteConfirm: 'Supprimer cet article ?',
+          successUpdate: 'Article mis à jour',
+          successCreate: 'Article créé',
+          errorSave: 'Erreur lors de l\'enregistrement',
+          errorConn: 'Erreur de connexion',
+          published: 'Publié',
+          draft: 'Brouillon'
+        },
+        events: {
+          title: 'Événements répertoriés',
+          addEvent: 'Ajouter un événement',
+          editEvent: 'Modifier l\'événement',
+          newEvent: 'Ajouter un nouvel événement',
+          date: 'Date',
+          location: 'Lieu',
+          price: 'Prix',
+          category: 'Catégorie',
+          deleteConfirm: 'Supprimer cet événement ?',
+          successUpdate: 'Événement mis à jour',
+          successCreate: 'Événement créé',
+          errorSave: 'Erreur lors de l\'enregistrement',
+          free: 'Gratuit',
+          paid: 'Payant',
+          type: 'Type d\'événement',
+          banner: 'Image de bannière (URL)',
+          status: 'Statut'
+        },
         common: {
           client: 'Client',
           date: 'Date',
           amount: 'Montant',
-          status: 'Statut',
+          statusLabel: 'Statut',
           completed: 'Complété',
           actions: 'Actions',
           instructor: 'Instructeur',
@@ -315,7 +551,18 @@ const resources = {
           role: 'Rôle',
           registration: 'Inscription',
           notSpecified: 'Non spécifié',
-          select: 'Sélectionner'
+          select: 'Sélectionner',
+          saving: 'Enregistrement...',
+          frContent: 'Contenu Français',
+          enContent: 'Contenu Anglais',
+          upload: 'TÉLÉCHARGER',
+          uploadSuccess: 'Image téléchargée',
+          uploadError: 'Erreur lors du téléchargement',
+          networkError: 'Erreur réseau lors du téléchargement',
+          status: {
+            published: 'Publié',
+            draft: 'Brouillon'
+          }
         }
       }
     }
@@ -325,76 +572,164 @@ const resources = {
       navbar: {
         home: 'Home',
         formations: 'Courses',
-        boutique: 'Shop',
+        inscription: 'Registration',
+        paiement: 'Payment',
+        events: 'Events',
+        eventsSubtitle: 'Explore upcoming workshops, seminars, and medical events',
         services: 'Services',
+        articles: 'Articles',
         contact: 'Contact',
-        instructors: 'Instructors',
-        login: 'Login',
-        register: 'Register',
+        login: 'Login / Register',
         logout: 'Logout',
-        admin: 'Admin'
+        admin: 'Admin',
+        dashboard: 'Dashboard'
+      },
+      dashboard: {
+        badge: 'Member Area',
+        welcome: 'Welcome, {{name}}',
+        desc: 'Access your courses and track your progress.',
+        loading: 'Loading your courses...',
+        noCourses: 'No courses found',
+        noCoursesDesc: "You don't have any active courses yet. Explore our catalogue to start your learning journey.",
+        catalogButton: 'View catalogue',
+        continue: 'Continue',
+        lesson: 'lesson',
+        completed: 'Completed'
       },
       home: {
-        badge: 'Medical Training Excellence',
-        title: 'Medical Training',
-        titleAccent: 'Structured & Practical',
-        registerCta: 'Join Now',
-        catalogueCta: 'Catalogue',
+        hero: {
+          fallbackTitle: 'Structured & Practical Medical Training Platform',
+          fallbackBtn: 'Join Now',
+          registerBtn: 'REGISTER',
+          catalogueBtn: 'CATALOGUE'
+        },
         features: {
-          video: {
-            title: 'Video Courses',
-            desc: 'Access hundreds of hours of high-quality medical content.'
+          courses: {
+            title: 'Courses',
+            desc: 'Structured courses with clinical cases'
           },
-          interactive: {
-            title: 'Interactive Quizzes',
-            desc: 'Test your knowledge after each module with our exams.'
+          quiz: {
+            title: 'Quiz',
+            desc: 'Over 30 corrected quizzes included'
           },
           support: {
-            title: '24/7 Support',
-            desc: 'A dedicated team of experts to answer all your questions.'
+            title: 'Support',
+            desc: 'Secure 24/7 online access'
           }
         },
-        instructors: {
-          badge: 'Our Instructors',
-          title: 'Guidance from',
-          titleAccent: 'Recognized Experts',
-          desc: 'Learn from specialists who practice daily. Our courses are the result of years of clinical and academic experience.',
-          dr1: {
-            name: 'Dr Nadine David',
-            role: 'Gynecology-Obstetrics Specialist',
-            focus: 'Fetal Heart Ultrasound'
-          },
-          dr2: {
-            name: 'Pr Loïc Sentilhes',
-            role: 'University Professor',
-            focus: 'Fetal Doppler & Maternal Medicine'
-          }
-        },
-        stats: {
-          instructors: 'Instructors',
-          doctors: 'Trained Doctors',
-          secure: 'Secure Platform'
+        intro: {
+          title: 'Master the fetal heart with structured courses and +30 corrected quizzes, and perfect your Doppler with courses and real clinical cases',
+          cta: 'Learn More'
         },
         upcoming: {
           title: 'Upcoming Courses',
-          desc: 'Register now for our next immersive training sessions.',
-          viewAll: 'View full catalogue'
-        },
-        cta: {
-          title: 'Ready to transform your practice?',
-          desc: 'Join hundreds of practitioners who have already improved their expertise with Clinisphere.',
-          button: 'Create a free account'
+          subtitle: 'Practical training for gynecologists',
+          details: 'More details',
+          colpo: {
+            tag: 'Colposcopy',
+            title: 'Colposcopy Training Level 1 & Level 2',
+            desc: 'Practical training for gynecologists wishing to deepen their skills in diagnostic and therapeutic colposcopy.'
+          },
+          prolapsus: {
+            tag: 'Prolapse',
+            title: 'PRACTICAL TRAINING IN VAGINAL SURGERY – PROLAPSE',
+            desc: '100% practical training for gynecologists wishing to master the techniques of managing prolapse by vaginal route.'
+          },
+          hystero: {
+            tag: 'Hysteroscopy',
+            title: 'ADVANCED TRAINING IN OPERATIVE HYSTEROSCOPY',
+            desc: 'Intended for gynecologists mastering diagnostic hysteroscopy (biopsies, simple polypectomies).'
+          }
         }
       },
+      instructors: {
+        badge: 'Our Experts & Instructors',
+        title: 'Learn with the Best',
+        desc: 'Meet our team of healthcare professionals passionate about knowledge transfer.',
+        searchPlaceholder: 'Search by name or specialty...',
+        viewProfile: 'View profile',
+        noResults: 'No instructor found',
+        notFound: 'Instructor not found',
+        backToList: 'Back to instructors',
+        expertTag: 'Expert Instructor',
+        contact: 'Contact',
+        share: 'Share',
+        about: 'About',
+        coursesBy: 'Courses by',
+        stats: {
+          courses: 'Courses',
+          students: 'Students',
+          rating: 'Rating',
+          experience: 'Experience'
+        }
+      },
+      events: {
+        title: 'Upcoming Events',
+        desc: 'Register for our exclusive seminars, webinars, and workshops.',
+        free: 'Free',
+        paid: 'Paid',
+        register: 'Register',
+        buy: 'Buy Now',
+        viewDetails: 'View Details',
+        upcoming: 'Upcoming Events',
+        past: 'Past Events',
+        noEvents: 'No upcoming events at the moment.',
+        all: 'All',
+        location: 'Location',
+        date: 'Date & Time',
+        search: 'Search for an event...',
+        noEventsFound: 'No events found',
+        tryDifferentFilter: 'Try changing your filters or your search.',
+        backToEvents: 'Back to events',
+        time: 'Time',
+        filter: {
+          all: 'All',
+          free: 'Free',
+          paid: 'Paid'
+        },
+        registration: 'Registration',
+        freeAdmission: 'Free Admission',
+        registerNow: 'Register Now',
+        buyTicket: 'Buy Ticket',
+        limitedSeats: 'Limited seats - Book fast!',
+        followUpdate: 'Follow our updates',
+        socialPrompt: 'Join us on Instagram so you don\'t miss any of our upcoming events and live training sessions.',
+        benefits: {
+          access: 'Full access to conferences',
+          materials: 'Training materials included',
+          certification: 'Certificate of participation',
+          networking: 'Networking session'
+        },
+        about: "About the event",
+        bookSeat: 'Book my seat',
+        program: 'Program'
+      },
       footer: {
-        desc: 'Your trusted partner for continuing medical education and advanced clinical practice.',
-        links: 'Explore',
+        desc: 'Expertise and structured medical training for healthcare professionals. Academic excellence and clinical practice.',
+        navigation: 'Navigation',
         contact: 'Contact Us',
-        newsletter: 'Newsletter',
-        newsletterDesc: 'Join 15,000+ informed clinicians.',
-        subscribe: 'Subscribe',
+        newsletter: 'Subscribe',
+        newsletterSub: 'Receive our latest training updates.',
+        emailPlaceholder: 'Your email',
+        subscribe: 'Subscribe now',
         privacy: 'Privacy Policy',
-        legal: 'Legal Mentions'
+        legal: 'Terms & Conditions',
+        rights: 'All rights reserved.'
+      },
+      blog: {
+        badge: 'Blog & News',
+        title: 'Our latest',
+        titleAccent: 'Articles',
+        category: 'Medicine',
+        readMore: 'Read more',
+        noArticles: 'No articles available at the moment.',
+        notFound: 'Article not found',
+        backToList: 'Back to articles',
+        shareArticle: 'Share this article',
+        shareDesc: 'Share the information within your professional network.',
+        readyToLearn: 'Ready to deepen your skills?',
+        readyDesc: 'Discover our certified training courses delivered by experts.',
+        seeCourses: 'See our courses'
       },
       formations: {
         badge: 'Full Catalogue',
@@ -422,6 +757,19 @@ const resources = {
           backToStore: 'Back to shop'
         }
       },
+      courseDetail: {
+        notFound: 'Course not found',
+        backToDashboard: 'Back to dashboard',
+        selectLesson: 'Select a lesson',
+        completed: 'Completed',
+        noVideo: 'No video available',
+        inProgress: 'In progress',
+        markAsCompleted: 'Mark as completed',
+        aboutLesson: 'About this lesson',
+        noDescription: 'No description available',
+        yourInstructor: 'Your Instructor',
+        curriculum: 'Course Curriculum'
+      },
       auth: {
         login: {
           badge: 'Member Area',
@@ -430,7 +778,9 @@ const resources = {
           button: 'Login',
           loading: 'Logging in...',
           noAccount: 'No account yet?',
-          registerLink: 'Create an account'
+          registerLink: 'Create an account',
+          emailPlaceholder: 'Professional Email',
+          passwordPlaceholder: 'Password'
         },
         register: {
           badge: 'Member Registration',
@@ -439,12 +789,27 @@ const resources = {
           button: 'Create account',
           loading: 'Creating account...',
           hasAccount: 'Already have an account?',
-          loginLink: 'Login here'
+          loginLink: 'Login here',
+          form: {
+            name: 'Full Name',
+            namePlaceholder: 'Dr. John Doe',
+            email: 'Email',
+            emailPlaceholder: 'contact@example.com',
+            specialty: 'Specialty',
+            specialtyPlaceholder: 'Gynecology, Cardiology...',
+            city: 'City',
+            cityPlaceholder: 'Abidjan, Paris...',
+            phone: 'Phone',
+            phonePlaceholder: '+225...',
+            password: 'Password',
+            passwordPlaceholder: '••••••••',
+          }
         }
       },
       course: {
         badge: 'Course',
         unlimited: 'Unlimited access',
+        instructor: 'Instructor',
         enroll: 'Join Now',
         addToCart: 'Add to cart',
         items: {
@@ -498,6 +863,71 @@ const resources = {
           certified: 'Certified & Secure Platform'
         }
       },
+      services_page: {
+        title: 'Upcoming training courses',
+        desc: 'Discover the details of each course with a dedicated image to better visualize your learning.',
+        courses: {
+          colpo: {
+            title: 'Colposcopy Training Level 1 & Level 2',
+            desc: 'Practical training for gynecologists wishing to deepen their skills in diagnostic and therapeutic colposcopy. Led by Professor Nawel Merrouche, head of department and renowned specialist in cervicovaginal screening, this training covers:',
+            list: [
+              'Diagnosis and management of precancerous cervical lesions (CIN 1, 2, 3)',
+              'Detection of cervical condylomas and polyps',
+              'Targeted biopsy techniques and interpretation of abnormalities',
+              'Use of contrast solutions and lesion monitoring.'
+            ],
+            locations: {
+              l1: 'Algiers Level 1: 🗓️ May 7-9, 2026',
+              l2: 'Algiers Level 2: 🗓️ September 24-26, 2026'
+            }
+          },
+          prolapsus: {
+            title: 'PRACTICAL TRAINING IN VAGINAL SURGERY – PROLAPSE',
+            desc: 'This 100% hands-on training program is designed for gynecologists who wish to master the techniques for managing prolapse vaginally.',
+            desc2: 'Led by Professor Michel Cosson, a renowned expert in pelvic surgery, this course allows participants to practice and acquire reproducible surgical techniques in real-world conditions.',
+            objectives: 'Objectives:',
+            list: [
+              'Mastery of prolapse correction techniques via the vaginal approach',
+              'Standardization of surgical procedures',
+              'Optimization of functional outcomes'
+            ]
+          },
+          hystero: {
+            title: 'ADVANCED TRAINING IN OPERATIVE HYSTEROSCOPY',
+            desc: 'Designed for gynecologists experienced in diagnostic hysteroscopy (biopsies, simple polypectomies), this training program allows them to progress towards a more refined surgical practice.',
+            desc2: 'Led by Professor Hervé Fernandez, an expert in hysteroscopic surgery, it focuses on acquiring precise and reproducible surgical techniques.',
+            indications: 'Indications covered include:',
+            list: 'Uterine synechiae - Isthmocele - Uterine septum - Common intracavitary pathologies'
+          }
+        },
+        contact: {
+          title: 'Contact us',
+          desc: 'Ask your questions or request details about our upcoming training courses.',
+          labels: {
+            phone: 'Phone',
+            email: 'Email'
+          },
+          hours: {
+            title: 'Hours of Operation',
+            desc: 'Our administration office is open for inquiries and support Monday through Friday, 09:00 AM – 06:00 PM (GMT+1). We typically respond to emails within 24 hours.'
+          },
+          locations: {
+            title: 'Training Locations',
+            desc: 'Our practical sessions are held at state-of-the-art medical training centers in Algiers and partner CHU facilities across Algeria and internationally.'
+          },
+          commitment: {
+            title: 'Support Commitment',
+            desc: 'We are committed to providing personalized guidance for every medical professional. If you have specific curriculum requests or need assistance with session scheduling, please do not hesitate to reach out.'
+          },
+          form: {
+            name: 'Your name',
+            namePlaceholder: 'Enter your name',
+            email: 'Your email*',
+            emailPlaceholder: 'Enter your email',
+            submit: 'Send'
+          }
+        }
+      },
       contact: {
         badge: 'Contact Us',
         title: 'Talk about your',
@@ -535,6 +965,8 @@ const resources = {
           users: 'Users',
           instructors: 'Instructors',
           settings: 'Settings',
+          events: 'Events',
+          articles: 'Articles',
           backToSite: 'Back to site',
           logout: 'Logout'
         },
@@ -549,7 +981,14 @@ const resources = {
           footerLogo: 'Footer Logo',
           logoLink: 'Logo Link (redirect)',
           saveSuccess: 'Settings saved successfully',
-          uploadLogo: 'Upload Logo'
+          uploadLogo: 'Upload Logo',
+          smtpConfig: 'SMTP Configuration (Contact)',
+          smtpHost: 'SMTP Host',
+          smtpPort: 'SMTP Port',
+          smtpUser: 'SMTP User',
+          smtpPass: 'SMTP Password',
+          smtpFrom: 'Sender (From Email)',
+          smtpAdmin: 'Destination Email (Admin)'
         },
         slider: {
           title: 'Home Slider Management',
@@ -573,6 +1012,7 @@ const resources = {
           activeCourses: 'Active Courses',
           users: 'Users',
           messages: 'Messages',
+          totalOrders: 'Total Orders',
           recentOrders: 'Recent Orders'
         },
         courses: {
@@ -596,7 +1036,13 @@ const resources = {
           intermediate: 'Intermediate',
           advanced: 'Advanced',
           defaultModuleTitle: 'New Module',
-          defaultLessonTitle: 'New Lesson'
+          defaultLessonTitle: 'New Lesson',
+          successCreate: 'Course created successfully',
+          successUpdate: 'Course updated',
+          loadError: 'Course format not found',
+          settingsAndPricing: 'Settings and Pricing',
+          freePreview: 'Free Preview',
+          saveCourse: 'Save Course'
         },
         instructors: {
           title: 'Instructors listed',
@@ -610,11 +1056,48 @@ const resources = {
           imageUrl: 'Image URL',
           dateAdded: 'Date Added'
         },
+        articles: {
+          title: 'Articles listed',
+          addArticle: 'Add an article',
+          editArticle: 'Edit article',
+          newArticle: 'Add a new article',
+          excerpt: 'Excerpt',
+          content: 'Content',
+          status: 'Status',
+          author: 'Author',
+          category: 'Category',
+          deleteConfirm: 'Delete this article?',
+          successUpdate: 'Article updated',
+          successCreate: 'Article created',
+          errorSave: 'Error during saving',
+          errorConn: 'Connection error',
+          published: 'Published',
+          draft: 'Draft'
+        },
+        events: {
+          title: 'Events listed',
+          addEvent: 'Add an event',
+          editEvent: 'Edit event',
+          newEvent: 'Add a new event',
+          date: 'Date',
+          location: 'Location',
+          price: 'Price',
+          category: 'Category',
+          deleteConfirm: 'Delete this event?',
+          successUpdate: 'Event updated',
+          successCreate: 'Event created',
+          errorSave: 'Error during saving',
+          free: 'Free',
+          paid: 'Paid',
+          type: 'Event Type',
+          banner: 'Banner Image (URL)',
+          status: 'Status'
+        },
         common: {
           client: 'Client',
           date: 'Date',
           amount: 'Amount',
-          status: 'Status',
+          statusLabel: 'Status',
           completed: 'Completed',
           actions: 'Actions',
           instructor: 'Instructor',
@@ -633,7 +1116,18 @@ const resources = {
           role: 'Role',
           registration: 'Registration',
           notSpecified: 'Not specified',
-          select: 'Select'
+          select: 'Select',
+          saving: 'Saving...',
+          frContent: 'French Content',
+          enContent: 'English Content',
+          upload: 'UPLOAD',
+          uploadSuccess: 'Image uploaded',
+          uploadError: 'Upload error',
+          networkError: 'Network error during upload',
+          status: {
+            published: 'Published',
+            draft: 'Draft'
+          }
         }
       }
     }

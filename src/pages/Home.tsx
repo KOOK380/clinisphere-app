@@ -1,24 +1,22 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, CheckCircle, Award, Users, BookOpen, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, CheckCircle, Award, Users, BookOpen, ArrowRight, Instagram, Facebook, ChevronLeft, ChevronRight, Music, Calendar, MapPin, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Course, Instructor, SliderItem } from '../types';
-import CourseCard from '../components/CourseCard';
 import { useTranslation } from 'react-i18next';
-import { getEmbedUrl, isExternalVideo, isDirectVideo } from "../utils";
 import { useSettings } from "../contexts/SettingsContext";
+import { SliderItem, Event } from '../types';
+import { getEmbedUrl, isExternalVideo, isDirectVideo } from "../utils";
 
 interface HomeProps {
-  onAddToCart: (course: Course) => void;
+  onAddToCart: (course: any) => void;
 }
 
 export default function Home({ onAddToCart }: HomeProps) {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [sliderItems, setSliderItems] = useState<SliderItem[]>([]);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { settings } = useSettings();
+  const [sliderItems, setSliderItems] = useState<SliderItem[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     // Fetch slider
@@ -29,24 +27,13 @@ export default function Home({ onAddToCart }: HomeProps) {
           setSliderItems(data.filter(item => item.isActive));
         }
       });
-
-    // Fetch courses
-    fetch('/api/courses')
+    
+    // Fetch events
+    fetch('/api/events')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setCourses(data.slice(0, 3));
-        } else {
-          setCourses([]);
-        }
-      });
-
-    // Fetch instructors
-    fetch('/api/instructors')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setInstructors(data.slice(0, 2));
+          setEvents(data);
         }
       });
   }, []);
@@ -55,7 +42,7 @@ export default function Home({ onAddToCart }: HomeProps) {
     if (sliderItems.length > 1) {
       const timer = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % sliderItems.length);
-      }, 8000);
+      }, 5000);
       return () => clearInterval(timer);
     }
   }, [sliderItems]);
@@ -64,9 +51,9 @@ export default function Home({ onAddToCart }: HomeProps) {
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + sliderItems.length) % sliderItems.length);
 
   return (
-    <div className="overflow-hidden">
-      {/* Dynamic Hero Slider */}
-      <section className="relative h-[90vh] overflow-hidden bg-black">
+    <div className="overflow-hidden font-sans">
+      {/* Hero Section with Dynamic Slider */}
+      <section className="relative h-screen min-h-[700px] bg-black overflow-hidden">
         <AnimatePresence mode="wait">
           {sliderItems.length > 0 ? (
             <motion.div
@@ -77,7 +64,6 @@ export default function Home({ onAddToCart }: HomeProps) {
               transition={{ duration: 1 }}
               className="absolute inset-0"
             >
-              {/* Background */}
               <div className="absolute inset-0 z-0">
                 {sliderItems[currentSlide].type === "video" ||
                 isExternalVideo(sliderItems[currentSlide].url) ||
@@ -107,73 +93,70 @@ export default function Home({ onAddToCart }: HomeProps) {
                     }}
                   />
                 )}
-                <div className="absolute inset-0 z-10 bg-black/50" />
+                <div className="absolute inset-0 z-10 bg-black/40" />
               </div>
 
-              {/* Content */}
-              <div className="relative z-20 h-full flex flex-col items-center justify-center text-center px-4 max-w-5xl mx-auto">
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.2 }}
-                >
-                  <div className="inline-block px-4 py-1.5 mb-8 border border-white/20 bg-white/10 backdrop-blur-md rounded-full text-white/80 text-[10px] uppercase tracking-[0.3em] font-bold">
-                    {t('home.badge')}
-                  </div>
-                  <h1 className="text-4xl md:text-6xl font-black text-white mb-6 leading-[1.1] md:leading-[1] tracking-tight">
-                    {sliderItems[currentSlide].title || t('home.title')}
-                  </h1>
-                  <p className="text-xl text-white/70 mb-10 max-w-2xl mx-auto font-medium">
-                    {sliderItems[currentSlide].subtitle}
-                  </p>
-                  
-                  <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
-                    {settings.sliderButton1Enabled && (
-                      <Link
-                        to={settings.sliderButton1Link || "/register"}
-                        className="w-full transform rounded-full bg-[#3B2A8F] px-12 py-5 text-lg font-black uppercase tracking-wider text-white shadow-2xl transition-all hover:bg-[#4B3ABF] hover:scale-105 sm:w-auto"
-                      >
-                        {settings.sliderButton1Text || t("home.registerCta")}
-                      </Link>
-                    )}
-                    {settings.sliderButton2Enabled && (
-                      <Link
-                        to={settings.sliderButton2Link || "/formations"}
-                        className="w-full rounded-full border border-white/30 bg-white/10 px-12 py-5 text-lg font-black uppercase tracking-wider text-white backdrop-blur-md transition-all hover:bg-white/20 sm:w-auto"
-                      >
-                        {settings.sliderButton2Text || t("home.catalogueCta")}
-                      </Link>
-                    )}
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          ) : (
-            /* Fallback Static Hero if no slider items */
-            <div className="absolute inset-0 flex items-center justify-center text-white">
-              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#1E3A8A] to-[#3B2A8F]" />
-              <div className="mx-auto max-w-5xl px-4 text-center">
-                <h1 className="mb-8 text-4xl font-black md:text-6xl">
-                  {t("home.title")}
+              <div className="relative z-20 h-full flex flex-col items-center justify-center text-center px-4 max-w-5xl mx-auto text-white">
+
+
+                <h1 className="text-4xl md:text-7xl font-bold mb-12 drop-shadow-lg leading-tight">
+                  {sliderItems[currentSlide].title || t('home.hero.fallbackTitle')}
                 </h1>
-                <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+
+                <p className="text-lg md:text-xl text-white/80 mb-10 max-w-2xl mx-auto font-medium italic">
+                  {sliderItems[currentSlide].subtitle}
+                </p>
+
+                <div className="flex flex-wrap justify-center gap-4">
                   {settings.sliderButton1Enabled && (
-                    <Link
-                      to={settings.sliderButton1Link || "/register"}
-                      className="rounded-full bg-white px-8 py-3 font-bold text-[#3B2A8F]"
+                    <Link 
+                      to={settings.sliderButton1Link || "/register"} 
+                      className="px-10 py-3 border-2 border-white bg-white text-[#1E3A8A] rounded-full text-lg font-bold hover:bg-white/90 transition-all shadow-lg"
                     >
-                      {settings.sliderButton1Text}
+                      {settings.sliderButton1Text || t('home.hero.registerBtn')}
                     </Link>
                   )}
                   {settings.sliderButton2Enabled && (
-                    <Link
-                      to={settings.sliderButton2Link || "/formations"}
-                      className="rounded-full border border-white px-8 py-3 font-bold text-white"
+                    <Link 
+                      to={settings.sliderButton2Link || "/courses"} 
+                      className="px-10 py-3 border-2 border-white text-white rounded-full text-lg font-bold hover:bg-white hover:text-white transition-all shadow-lg backdrop-blur-sm bg-white/10"
                     >
-                      {settings.sliderButton2Text}
+                      {settings.sliderButton2Text || t('home.hero.catalogueBtn')}
+                    </Link>
+                  )}
+                  
+                  {!settings.sliderButton1Enabled && !settings.sliderButton2Enabled && (
+                    <Link 
+                      to={sliderItems[currentSlide].buttonLink || "/register"} 
+                      className="inline-block px-10 py-3 border-2 border-white/50 bg-white/10 backdrop-blur-sm rounded-full text-lg font-medium hover:bg-white/20 transition-all"
+                    >
+                      {sliderItems[currentSlide].buttonText || t('home.hero.fallbackBtn')}
                     </Link>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          ) : (
+            /* Fallback Static Hero */
+            <div className="absolute inset-0">
+               <div 
+                className="absolute inset-0 z-0 bg-cover bg-center"
+                style={{ 
+                  backgroundImage: 'url("https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=2000")',
+                }}
+              >
+                <div className="absolute inset-0 bg-black/40" />
+              </div>
+
+              <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 max-w-5xl mx-auto text-white">
+
+                <h1 className="text-5xl md:text-7xl font-bold mb-12 drop-shadow-lg leading-tight">
+                  {t('home.hero.fallbackTitle').split('&')[0]}<br />
+                  {t('home.hero.fallbackTitle').split('&')[1] ? '& ' + t('home.hero.fallbackTitle').split('&')[1] : ''}
+                </h1>
+                <Link to="/register" className="inline-block px-10 py-3 border-2 border-white/50 bg-white/10 backdrop-blur-sm rounded-full text-lg font-medium hover:bg-white/20 transition-all">
+                  {t('home.hero.fallbackBtn')}
+                </Link>
               </div>
             </div>
           )}
@@ -182,176 +165,238 @@ export default function Home({ onAddToCart }: HomeProps) {
         {/* Navigation Arrows */}
         {sliderItems.length > 1 && (
           <>
-            <button 
-              onClick={prevSlide}
-              className="absolute left-6 top-1/2 -translate-y-1/2 z-30 p-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all hidden md:block"
-            >
+            <button onClick={prevSlide} className="absolute left-6 top-1/2 -translate-y-1/2 z-30 p-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all hidden md:block">
               <ChevronLeft size={24} />
             </button>
-            <button 
-              onClick={nextSlide}
-              className="absolute right-6 top-1/2 -translate-y-1/2 z-30 p-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all hidden md:block"
-            >
+            <button onClick={nextSlide} className="absolute right-6 top-1/2 -translate-y-1/2 z-30 p-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all hidden md:block">
               <ChevronRight size={24} />
             </button>
-
-            {/* Pagination Dots */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex gap-3">
-              {sliderItems.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentSlide(i)}
-                  className={`h-1.5 rounded-full transition-all ${i === currentSlide ? 'w-8 bg-white' : 'w-2 bg-white/30'}`}
-                />
-              ))}
-            </div>
           </>
         )}
-        
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 animate-bounce">
-          <div className="w-1 h-12 bg-gradient-to-b from-white/0 via-white/50 to-white/0 rounded-full" />
+
+        {/* Quick Features Row Overlay */}
+        <div className="absolute bottom-10 left-0 right-0 z-20">
+          <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-white">
+            <div className="p-4 bg-black/30 backdrop-blur-md rounded-lg border border-white/10">
+              <h3 className="text-xl font-bold mb-2">{t('home.features.courses.title')}</h3>
+              <p className="text-sm text-gray-200">{t('home.features.courses.desc')}</p>
+            </div>
+            <div className="p-4 bg-black/30 backdrop-blur-md rounded-lg border border-white/10">
+              <h3 className="text-xl font-bold mb-2">{t('home.features.quiz.title')}</h3>
+              <p className="text-sm text-gray-200">{t('home.features.quiz.desc')}</p>
+            </div>
+            <div className="p-4 bg-black/30 backdrop-blur-md rounded-lg border border-white/10">
+              <h3 className="text-xl font-bold mb-2">{t('home.features.support.title')}</h3>
+              <p className="text-sm text-gray-200">{t('home.features.support.desc')}</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Feature Blocks (Overlaid Pattern) */}
-      <section className="relative z-30 -mt-12 md:-mt-20 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-center gap-6">
-          {[
-            { icon: BookOpen, title: t('home.features.video.title'), desc: t('home.features.video.desc'), bg: 'bg-blue-50' },
-            { icon: Award, title: t('home.features.interactive.title'), desc: t('home.features.interactive.desc'), bg: 'bg-purple-50' },
-            { icon: Users, title: t('home.features.support.title'), desc: t('home.features.support.desc'), bg: 'bg-amber-50' }
-          ].map((f, i) => (
-            <motion.div 
-              key={i}
-              whileHover={{ y: -10 }}
-              className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-gray-100 flex-1 max-w-full md:max-w-[380px] group transition-all duration-500"
-            >
-              <div className={`w-16 h-16 ${f.bg} rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform`}>
-                <f.icon className="w-8 h-8 text-[#3B2A8F]" />
-              </div>
-              <h3 className="text-2xl font-black text-[#3B2A8F] mb-4 tracking-tighter uppercase">{f.title}</h3>
-              <p className="text-gray-500 leading-relaxed text-sm">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Doctors Section */}
-      <section className="py-32 bg-[#3B2A8F] text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 skew-x-[-15deg] transform translate-x-1/4" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
-            <div>
-              <span className="text-blue-300 font-black tracking-[0.3em] uppercase text-[10px] mb-6 block">{t('home.instructors.badge')}</span>
-              <h2 className="text-5xl md:text-7xl font-black mb-10 leading-[1] tracking-tight">{t('home.instructors.title')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-400">{t('home.instructors.titleAccent')}</span></h2>
-              <p className="text-xl text-blue-100/60 mb-12 leading-relaxed font-medium">
-                {t('home.instructors.desc')}
-              </p>
-              <div className="space-y-6">
-                {instructors.map((inst, i) => (
-                  <Link 
-                    to={`/instructors/${inst.id}`}
-                    key={i} 
-                  >
-                    <motion.div 
-                      whileHover={{ x: 10 }}
-                      className="flex items-center space-x-6 p-8 rounded-3xl bg-white/5 backdrop-blur-md border border-white/10 group mb-4"
-                    >
-                      <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center overflow-hidden group-hover:bg-[#3B2A8F] transition-colors shadow-xl">
-                        <img src={inst.image} alt={inst.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div>
-                        <h4 className="text-2xl font-black tracking-tight">{inst.name}</h4>
-                        <p className="text-blue-200/60 text-sm font-bold uppercase tracking-wider">{inst.specialty}</p>
-                        <p className="text-[10px] text-blue-300 mt-2 uppercase font-black tracking-[0.2em] line-clamp-1">{inst.bio}</p>
-                      </div>
-                    </motion.div>
-                  </Link>
-                ))}
-              </div>
+      {/* Intro Section */}
+      <section className="py-24 bg-[#F9E5D9]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="max-w-xl">
+              <h2 className="text-3xl md:text-4xl font-bold text-[#3B2A8F] leading-snug italic mb-10">
+                {t('home.intro.title')}
+              </h2>
+              <Link 
+                to="/formations" 
+                className="inline-block bg-[#3B2A8F] text-white px-8 py-3 rounded-full text-sm font-bold shadow-lg hover:bg-[#2d1f70] transition-colors"
+              >
+                {t('home.intro.cta')}
+              </Link>
             </div>
             <div className="relative">
-              <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl relative z-10 border-8 border-white/5">
-                <img 
-                  src="https://images.unsplash.com/photo-1559839734-2b71f1536783?auto=format&fit=crop&q=80&w=1000" 
-                  alt="Medical training"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute -bottom-10 -right-10 w-full h-full bg-[#4B3ABF]/30 rounded-[3rem] -z-10 blur-2xl" />
+              <img 
+                src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=1024,h=1016,fit=crop/lYN1Q93r88qnxStG/neurologie-vPD8OqghrDD8QJui.png" 
+                alt="Neurologie" 
+                className="w-full rounded-2xl shadow-2xl"
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Bar (Bottom Content Bar style) */}
-      <div className="bg-white border-y border-gray-100 py-12">
-        <div className="max-w-7xl mx-auto px-10 flex flex-col md:flex-row items-center justify-between gap-12">
-          <div className="flex items-center gap-12">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-[#3B2A8F]/50 font-black mb-3">{t('home.stats.instructors')}</p>
-              <div className="flex -space-x-4">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="w-12 h-12 rounded-full border-4 border-white bg-gray-200 shadow-md"></div>
-                ))}
+      {/* Formations Section (Upcoming Courses) */}
+      <section className="py-24 bg-[#3B2A8F] text-white">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <h2 className="text-5xl font-bold mb-4 uppercase tracking-tight">{t('home.upcoming.title')}</h2>
+          <p className="text-blue-200 text-lg mb-20 italic">{t('home.upcoming.subtitle')}</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {/* card 1 */}
+            <div className="flex flex-col">
+              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[240px] uppercase text-sm">
+                {t('home.upcoming.colpo.tag')}
+              </div>
+              <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
+                <div className="h-[300px] relative">
+                  <img src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/1.png" alt="Colposcopie" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm py-2 px-4 shadow-inner">
+                    <p className="text-[#3B2A8F] font-bold text-sm">Professeur Nawel MERROUCHE</p>
+                  </div>
+                </div>
+                <div className="p-8 flex-grow text-left">
+                  <h3 className="text-[#3B2A8F] text-2xl font-bold mb-6 leading-tight uppercase">{t('home.upcoming.colpo.title')}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-8">
+                    {t('home.upcoming.colpo.desc')}
+                  </p>
+                  <div className="mt-auto flex justify-end">
+                    <Link to="/formations" className="px-6 py-2 bg-gray-50 border border-gray-100 rounded-full text-[#3B2A8F] font-bold text-xs hover:bg-gray-100 italic">
+                      {t('home.upcoming.details')}
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-4xl font-black text-[#3B2A8F] tracking-tighter">15k+</p>
-              <p className="text-[10px] text-[#3B2A8F]/40 font-black uppercase tracking-widest mt-1">{t('home.stats.doctors')}</p>
+
+            {/* card 2 */}
+            <div className="flex flex-col">
+              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[240px] uppercase text-sm">
+                {t('home.upcoming.prolapsus.tag')}
+              </div>
+              <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
+                <div className="h-[300px] relative">
+                  <img src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/2.png" alt="Prolapsus" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm py-2 px-4 shadow-inner">
+                    <p className="text-[#3B2A8F] font-bold text-sm">Professeur Hervé FERNANDEZ.</p>
+                  </div>
+                </div>
+                <div className="p-8 flex-grow text-left">
+                  <h3 className="text-[#3B2A8F] text-xl font-bold mb-6 leading-tight uppercase">{t('home.upcoming.prolapsus.title')}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-8">
+                    {t('home.upcoming.prolapsus.desc')}
+                  </p>
+                  <div className="mt-auto flex justify-end">
+                    <Link to="/formations" className="px-6 py-2 bg-gray-50 border border-gray-100 rounded-full text-[#3B2A8F] font-bold text-xs hover:bg-gray-100 italic">
+                      {t('home.upcoming.details')}
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-8">
-            <span className="text-[#3B2A8F]/30 font-black text-[10px] uppercase tracking-[0.3em]">{t('home.stats.secure')}</span>
-            <div className="flex gap-4">
-              <div className="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/20"></div>
-              <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/20"></div>
-              <div className="w-3 h-3 rounded-full bg-[#3B2A8F] shadow-lg shadow-[#3B2A8F]/20"></div>
+
+            {/* card 3 */}
+            <div className="flex flex-col">
+              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[240px] uppercase text-sm">
+                {t('home.upcoming.hystero.tag')}
+              </div>
+              <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
+                <div className="h-[300px] relative">
+                  <img src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/3.png" alt="Hysteroscopie" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm py-2 px-4 shadow-inner">
+                    <p className="text-[#3B2A8F] font-bold text-sm">Professeur Michel COSSON</p>
+                  </div>
+                </div>
+                <div className="p-8 flex-grow text-left">
+                  <h3 className="text-[#3B2A8F] text-2xl font-bold mb-6 leading-tight uppercase">{t('home.upcoming.hystero.title')}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-8">
+                    {t('home.upcoming.hystero.desc')}
+                  </p>
+                  <div className="mt-auto flex justify-end">
+                    <Link to="/formations" className="px-6 py-2 bg-gray-50 border border-gray-100 rounded-full text-[#3B2A8F] font-bold text-xs hover:bg-gray-100 italic">
+                      {t('home.upcoming.details')}
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Formations Section */}
-      <section className="py-24 bg-[#fafaf9]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+      {/* Events Section */}
+      <section className="py-24 bg-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-end mb-16 gap-6">
             <div className="max-w-2xl">
-              <h2 className="text-4xl font-black text-[#3B2A8F] mb-4 tracking-tighter uppercase">{t('home.upcoming.title')}</h2>
-              <p className="text-gray-400 text-lg font-medium">{t('home.upcoming.desc')}</p>
+              <span className="text-[#3B2A8F] font-black tracking-widest uppercase text-[10px] mb-4 block">{t('events.upcoming')}</span>
+              <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight italic mb-4">{t('events.title')}</h2>
+              <p className="text-gray-400 font-medium italic">{t('navbar.eventsSubtitle')}</p>
             </div>
-            <Link to="/formations" className="flex items-center space-x-2 text-[#3B2A8F] font-black text-[10px] uppercase tracking-widest hover:underline group">
-              <span>{t('home.upcoming.viewAll')}</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+            <Link to="/events" className="flex items-center gap-3 text-[#3B2A8F] font-black uppercase text-[11px] tracking-widest group bg-gray-50 px-6 py-3 rounded-full hover:bg-gray-100 transition-all">
+              {t('events.all')}
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {courses.map((course) => (
-              <CourseCard key={course.id} course={course} onAddToCart={onAddToCart} />
-            ))}
+          <div className="relative group">
+            {events.length > 0 ? (
+              <div className="flex gap-8 overflow-x-auto pb-12 snap-x custom-scrollbar">
+                {events.map((event, i) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, x: 50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex-shrink-0 w-[300px] md:w-[380px] snap-start group/card"
+                  >
+                    <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-md hover:shadow-2xl transition-all overflow-hidden h-full flex flex-col">
+                      <div className="relative h-56 overflow-hidden">
+                        <img 
+                          src={event.banner} 
+                          alt={i18n.language === 'fr' ? (event.title_fr || event.title_en) : (event.title_en || event.title_fr)} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
+                        />
+                        <div className="absolute top-4 right-4">
+                          <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg ${event.type === 'free' ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'}`}>
+                            {event.type === 'free' ? t('events.free') : `${event.price} DH`}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-8 flex-grow flex flex-col">
+                        <div className="flex items-center gap-3 text-[9px] font-bold text-[#08678C] uppercase tracking-widest mb-4">
+                          <Calendar size={12} />
+                          <span>{new Date(event.eventDate).toLocaleDateString(i18n.language, { month: 'long', day: 'numeric' })}</span>
+                        </div>
+                        <h3 className="text-xl font-black text-gray-900 mb-6 tracking-tight line-clamp-2 italic leading-tight">
+                          {i18n.language === 'fr' ? (event.title_fr || event.title_en || event.title) : (event.title_en || event.title_fr || event.title)}
+                        </h3>
+                        <div className="flex flex-col gap-3 mb-8">
+                           <div className="flex items-center gap-3 text-gray-400 text-[10px] italic">
+                             <MapPin size={12} className="text-[#3B2A8F]" />
+                             <span className="line-clamp-1">{event.location}</span>
+                           </div>
+                           <div className="flex items-center gap-3 text-gray-400 text-[10px] italic">
+                             <Clock size={12} className="text-[#3B2A8F]" />
+                             <span>{new Date(event.eventDate).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}</span>
+                           </div>
+                        </div>
+                        <Link 
+                          to={`/events/${event.id}`}
+                          className="mt-auto inline-flex items-center justify-center w-full gap-2 bg-gray-50 text-[#3B2A8F] py-4 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-[#3B2A8F] hover:text-white transition-all shadow-sm"
+                        >
+                          {t('events.viewDetails')}
+                        </Link>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-20 text-center bg-gray-50 rounded-[3rem] border border-dashed border-gray-200">
+                <Calendar className="mx-auto text-gray-200 mb-6" size={48} />
+                <h3 className="text-xl font-black text-gray-400 italic mb-2 uppercase tracking-tight">{t('events.noEventsFound')}</h3>
+                <p className="text-gray-400 text-sm italic font-medium">{t('events.tryDifferentFilter')}</p>
+              </div>
+            )}
+            
+            {/* Scroll indicator for mobile */}
+            {events.length > 1 && (
+              <div className="flex justify-center gap-2 mt-4 md:hidden">
+                {events.map((_, i) => (
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Call to Action */}
-      <section className="py-24 bg-white">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="bg-gradient-to-br from-[#3B2A8F] to-[#2d1f70] rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden shadow-3xl shadow-[#3B2A8F]/30">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-            <div className="relative z-10">
-              <h2 className="text-3xl md:text-5xl font-black text-white mb-8 tracking-tighter uppercase">{t('home.cta.title')}</h2>
-              <p className="text-blue-100/60 text-lg mb-10 max-w-2xl mx-auto font-medium">
-                {t('home.cta.desc')}
-              </p>
-              <Link to="/register" className="inline-block bg-white text-[#3B2A8F] px-12 py-5 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-2xl active:scale-95">
-                {t('home.cta.button')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
+

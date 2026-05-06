@@ -34,7 +34,9 @@ export default function Login({ onLogin }: LoginProps) {
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
       onLogin(data.user, data.token);
-      const redirect = searchParams.get('redirect') || '/';
+      
+      const defaultRedirect = data.user.role === 'admin' ? '/admin' : '/dashboard';
+      const redirect = searchParams.get('redirect') || defaultRedirect;
       navigate(redirect);
     } catch (err: any) {
       setError(err.message);
@@ -74,7 +76,7 @@ export default function Login({ onLogin }: LoginProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full px-8 py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#3B2A8F]/5 focus:bg-white transition-all text-[#3B2A8F] font-black placeholder:text-gray-300 placeholder:font-black placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
-                  placeholder={t('auth.login.badge') === 'Espace Membre' ? 'Email Professionnel' : 'Professional Email'}
+                  placeholder={t('auth.login.emailPlaceholder')}
                 />
               </div>
 
@@ -85,9 +87,15 @@ export default function Login({ onLogin }: LoginProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full px-8 py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#3B2A8F]/5 focus:bg-white transition-all text-[#3B2A8F] font-black placeholder:text-gray-300 placeholder:font-black placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
-                  placeholder={t('auth.login.badge') === 'Espace Membre' ? 'Mot de passe' : 'Password'}
+                  placeholder={t('auth.login.passwordPlaceholder')}
                 />
               </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-sm font-bold text-blue-600 hover:text-blue-800">
+                Forgot password?
+              </Link>
             </div>
 
             <button

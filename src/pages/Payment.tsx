@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CreditCard, CheckCircle, ShieldCheck, Lock, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { CheckCircle, ShieldCheck, ArrowLeft, MapPin } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CartItem } from '../types';
 import Price from '../components/Price';
 
@@ -11,11 +12,33 @@ interface PaymentProps {
 }
 
 export default function Payment({ cart, clearCart }: PaymentProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
+  const location = useLocation();
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
+  const [billingAddress, setBillingAddress] = useState({
+    fullName: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    country: ''
+  });
+
+  useEffect(() => {
+    if (location.pathname.includes('/checkout/success')) {
+      setStep(2);
+      clearCart();
+    } else if (location.pathname.includes('/checkout/failure')) {
+      alert("Paiement échoué ou annulé.");
+    }
+  }, [location]);
+
   const handlePayment = async () => {
-    // In a real app, you'd call the /api/orders endpoint here
+    if (!billingAddress.fullName || !billingAddress.address || !billingAddress.city) {
+      alert("Veuillez remplir les informations de facturation");
+      return;
+    }
     const token = localStorage.getItem('token');
     try {
       const res = await fetch('/api/orders', {
@@ -24,14 +47,24 @@ export default function Payment({ cart, clearCart }: PaymentProps) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ items: cart, totalPrice: total }),
+        body: JSON.stringify({ 
+          items: cart, 
+          totalPrice: total, 
+          billingAddress: JSON.stringify(billingAddress) 
+        }),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else if (res.ok) {
         setStep(2);
         clearCart();
+      } else {
+        alert(data.error || "Une erreur s'est produite");
       }
     } catch (err) {
       console.error(err);
+      alert("Erreur de connexion");
     }
   };
 
@@ -50,8 +83,8 @@ export default function Payment({ cart, clearCart }: PaymentProps) {
           <p className="text-gray-500 mb-10 leading-relaxed">
             Votre commande a été validée avec succès. Vous recevrez un email de confirmation contenant vos accès de formation dans quelques instants.
           </p>
-          <Link to="/" className="inline-block w-full bg-[#3b2a8f] text-white py-5 rounded-2xl font-bold text-lg hover:bg-[#2d1f70] transition-all shadow-xl">
-            Retour à l'accueil
+          <Link to="/dashboard" className="inline-block w-full bg-[#3b2a8f] text-white py-5 rounded-2xl font-bold text-lg hover:bg-[#2d1f70] transition-all shadow-xl">
+            Aller à mon tableau de bord
           </Link>
         </motion.div>
       </div>
@@ -61,15 +94,20 @@ export default function Payment({ cart, clearCart }: PaymentProps) {
   return (
     <div className="py-20 bg-[#fafaf9] min-h-screen">
       <div className="max-w-4xl mx-auto px-4">
-        <Link to="/boutique" className="inline-flex items-center text-gray-500 hover:text-[#3b2a8f] mb-12 group">
+        <Link to="/cart" className="inline-flex items-center text-gray-500 hover:text-[#3b2a8f] mb-12 group">
           <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
           <span className="font-bold uppercase tracking-widest text-xs">Retour au panier</span>
         </Link>
+        
+        <header className="mb-12">
+          <span className="text-[#3B2A8F] font-black tracking-widest uppercase text-[10px] mb-4 block">Secure Checkout</span>
+          <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight italic">Validation de commande</h1>
+        </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* Order Summary */}
           <div className="space-y-8">
-            <h2 className="text-3xl font-bold text-gray-900">Résumé de la commande</h2>
+            <h2 className="text-xl font-bold text-gray-900 italic">Résumé de la commande</h2>
             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-6">
               {cart.map((item) => (
                 <div key={item.id} className="flex justify-between items-start">
@@ -97,46 +135,55 @@ export default function Payment({ cart, clearCart }: PaymentProps) {
             </div>
           </div>
 
-          {/* Payment Form (Static UI) */}
           <div className="bg-white rounded-[2.5rem] p-10 shadow-2xl border border-gray-50 flex flex-col justify-between">
             <div className="space-y-8">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xl font-bold text-gray-900">Mode de paiement</h3>
-                <div className="flex space-x-2">
-                  <CreditCard className="w-6 h-6 text-gray-400" />
-                  <div className="w-10 h-6 bg-gray-200 rounded-sm" /> {/* Mock Visa */}
-                  <div className="w-10 h-6 bg-gray-200 rounded-sm" /> {/* Mock MC */}
-                </div>
+                <h3 className="text-xl font-bold text-gray-900">Adresse de Facturation</h3>
+                <MapPin className="w-6 h-6 text-[#3b2a8f]" />
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Numéro de carte</label>
-                  <div className="relative group">
-                    <input 
-                      type="text" 
-                      placeholder="XXXX XXXX XXXX XXXX" 
-                      className="w-full bg-gray-50 border border-transparent px-6 py-4 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#3b2a8f] transition-all outline-none font-mono"
-                    />
-                    <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
-                  </div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
+                  <input 
+                    type="text" 
+                    placeholder="Jean Dupont"
+                    value={billingAddress.fullName}
+                    onChange={(e) => setBillingAddress({...billingAddress, fullName: e.target.value})}
+                    className="w-full bg-gray-50 border border-transparent px-6 py-4 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#3b2a8f] transition-all outline-none"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Adresse</label>
+                  <input 
+                    type="text" 
+                    placeholder="123 rue de la Paix"
+                    value={billingAddress.address}
+                    onChange={(e) => setBillingAddress({...billingAddress, address: e.target.value})}
+                    className="w-full bg-gray-50 border border-transparent px-6 py-4 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#3b2a8f] transition-all outline-none"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Expiration</label>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Code Postal</label>
                     <input 
                       type="text" 
-                      placeholder="MM/YY" 
-                      className="w-full bg-gray-50 border border-transparent px-6 py-4 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#3b2a8f] transition-all outline-none font-mono"
+                      placeholder="75001"
+                      value={billingAddress.postalCode}
+                      onChange={(e) => setBillingAddress({...billingAddress, postalCode: e.target.value})}
+                      className="w-full bg-gray-50 border border-transparent px-6 py-4 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#3b2a8f] transition-all outline-none"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">CVC</label>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Ville</label>
                     <input 
                       type="text" 
-                      placeholder="123" 
-                      className="w-full bg-gray-50 border border-transparent px-6 py-4 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#3b2a8f] transition-all outline-none font-mono"
+                      placeholder="Paris"
+                      value={billingAddress.city}
+                      onChange={(e) => setBillingAddress({...billingAddress, city: e.target.value})}
+                      className="w-full bg-gray-50 border border-transparent px-6 py-4 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#3b2a8f] transition-all outline-none"
                     />
                   </div>
                 </div>
@@ -147,7 +194,7 @@ export default function Payment({ cart, clearCart }: PaymentProps) {
               onClick={handlePayment}
               className="mt-12 w-full bg-[#3b2a8f] text-white py-5 rounded-2xl font-bold text-xl hover:bg-[#2d1f70] transition-all shadow-xl shadow-[#3b2a8f]/20 active:scale-[0.98] flex items-center justify-center gap-4"
             >
-              <span>Payer</span>
+              <span>Payer avec Chargily</span>
               <Price amount={total} />
             </button>
           </div>

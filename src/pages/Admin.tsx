@@ -1,7 +1,8 @@
 import React, { useState, useEffect, FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
+import AdminLayout from "../components/AdminLayout";
 import { SettingsProvider, useSettings } from "../contexts/SettingsContext";
 import {
   Users,
@@ -26,8 +27,14 @@ import {
   FileText,
   GripVertical,
   X,
+  Key,
+  Shield,
+  Facebook,
+  Calendar,
+  MapPin,
+  CreditCard
 } from "lucide-react";
-import { Course, User, Instructor, Module, Lesson, SliderItem } from "../types";
+import { Course, User, Instructor, Module, Lesson, SliderItem, Event } from "../types";
 import { isExternalVideo, getEmbedUrl } from "../utils";
 
 interface Order {
@@ -38,6 +45,7 @@ interface Order {
   totalPrice: number;
   status: string;
   createdAt: string;
+  billing_address?: string;
 }
 
 interface Contact {
@@ -50,6 +58,11 @@ interface Contact {
 
 export default function Admin({ onLogout }: { onLogout: () => void }) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const tabParam = queryParams.get("tab");
+
   const [activeTab, setActiveTab] = useState<
     | "dashboard"
     | "courses"
@@ -59,24 +72,42 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     | "instructors"
     | "settings"
     | "slider"
-  >("dashboard");
+    | "events"
+    | "articles"
+    | "announcements"
+    | "email_templates"
+  >((tabParam as any) || "dashboard");
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam as any);
+    } else {
+      setActiveTab("dashboard");
+    }
+  }, [tabParam]);
   const { settings, refreshSettings } = useSettings();
   const token = localStorage.getItem("token");
   const [courses, setCourses] = useState<Course[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [articles, setArticles] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [sliderItems, setSliderItems] = useState<SliderItem[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
-  const [isAddingCourse, setIsAddingCourse] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isAddingInstructor, setIsAddingInstructor] = useState(false);
   const [editingInstructor, setEditingInstructor] = useState<Instructor | null>(
     null,
   );
+  const [isAddingArticle, setIsAddingArticle] = useState(false);
+  const [isAddingAnnouncement, setIsAddingAnnouncement] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<any | null>(null);
 
   // Settings State
   const [settingsData, setSettingsData] = useState(settings);
@@ -95,24 +126,15 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     isActive: true,
   });
 
-  // Data Forms
-  const [courseData, setCourseData] = useState<Partial<Course>>({
+  // Article State
+  const [articleData, setArticleData] = useState({
     title: "",
-    shortDescription: "",
-    fullDescription: "",
-    price: 0,
-    discountPrice: 0,
-    thumbnail: "",
-    previewVideo: "",
+    excerpt: "",
+    content: "",
+    image: "",
+    author: "",
     category: "",
-    level: "beginner",
-    instructorId: 0,
-    duration: "",
-    language: "Français",
-    tags: [],
-    isPublished: true,
-    isFeatured: false,
-    modules: [],
+    status: "published" as "published" | "draft"
   });
 
   const [instructorData, setInstructorData] = useState({
@@ -163,7 +185,15 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
         fetchAndSet("/api/admin/instructors", setInstructors, {
           headers: authHeader,
         }),
+        fetchAndSet("/api/admin/events", setEvents, {
+          headers: authHeader,
+        }),
+        fetchAndSet("/api/admin/articles", setArticles, {
+          headers: authHeader,
+        }),
         fetchAndSet("/api/slider", setSliderItems),
+        fetchAndSet("/api/admin/announcements", setAnnouncements, { headers: authHeader }),
+        fetchAndSet("/api/admin/email-templates", setEmailTemplates, { headers: authHeader }),
       ]);
     } catch (error) {
       console.error("General error in fetchData:", error);
@@ -277,9 +307,137 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     setCourses(Array.isArray(data) ? data : []);
   };
 
+  const fetchEvents = async () => {
+    const res = await fetch("/api/admin/events", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    setEvents(Array.isArray(data) ? data : []);
+  };
+
+  const fetchArticles = async () => {
+    const res = await fetch("/api/admin/articles", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    setArticles(Array.isArray(data) ? data : []);
+  };
+
+  const [newAnnouncement, setNewAnnouncement] = useState({
+    title: "",
+    message: "",
+    courseId: "",
+    eventId: "",
+  });
+
+  const handleDeleteAnnouncement = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this notification?")) return;
+    try {
+      const res = await fetch(`/api/admin/announcements/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchData(); // re-fetch data
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+    }
+  };
+
+  const handleCreateAnnouncement = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        title: newAnnouncement.title,
+        message: newAnnouncement.message,
+        courseId: newAnnouncement.courseId ? parseInt(newAnnouncement.courseId) : null,
+        eventId: newAnnouncement.eventId ? parseInt(newAnnouncement.eventId) : null,
+      };
+
+      const res = await fetch("/api/admin/announcements", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setIsAddingAnnouncement(false);
+        setNewAnnouncement({ title: "", message: "", courseId: "", eventId: "" });
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Error creating announcement:", error);
+    }
+  };
+
+  const handleDeleteArticle = async (id: number) => {
+    if (!window.confirm(t('admin.articles.deleteConfirm')))
+      return;
+    try {
+      const res = await fetch(`/api/admin/articles/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchArticles();
+    } catch (error) {
+      console.error("Error deleting article:", error);
+    }
+  };
+
+  const handleSubmitArticle = async (e: FormEvent) => {
+    e.preventDefault();
+    const url = editingArticle
+      ? `/api/admin/articles/${editingArticle.id}`
+      : "/api/admin/articles";
+    const method = editingArticle ? "PUT" : "POST";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(articleData),
+      });
+
+      if (res.ok) {
+        setIsAddingArticle(false);
+        setEditingArticle(null);
+        setArticleData({
+          title: "",
+          excerpt: "",
+          content: "",
+          image: "",
+          author: "",
+          category: "",
+          status: "published",
+        });
+        fetchArticles();
+      }
+    } catch (error) {
+      console.error("Error saving article:", error);
+    }
+  };
+
+  const handleDeleteEvent = async (id: number) => {
+    if (!window.confirm(t('admin.events.deleteConfirm')))
+      return;
+    try {
+      const res = await fetch(`/api/admin/events/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchEvents();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+    }
+  };
+
   const handleLogoUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: "headerLogo" | "footerLogo",
+    field: "headerLogo" | "footerLogo" | "floating_chat_custom_icon",
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -308,13 +466,16 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
 
   const handleSaveSettings = async () => {
     try {
+      const dataToSave = { ...settingsData };
+      delete dataToSave._envStatus;
+
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(settingsData),
+        body: JSON.stringify(dataToSave),
       });
       if (res.ok) {
         alert(t("admin.settings.saveSuccess"));
@@ -323,100 +484,6 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     } catch (err) {
       console.error("Save settings error:", err);
     }
-  };
-
-  const handleSubmitCourse = async (e: FormEvent) => {
-    e.preventDefault();
-    const url = editingCourse
-      ? `/api/courses/${editingCourse.id}`
-      : "/api/courses";
-    const method = editingCourse ? "PUT" : "POST";
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(courseData),
-      });
-
-      if (res.ok) {
-        setIsAddingCourse(false);
-        setEditingCourse(null);
-        setCourseData({
-          title: "",
-          shortDescription: "",
-          fullDescription: "",
-          price: 0,
-          thumbnail: "",
-          category: "",
-          instructorId: 0,
-          modules: [],
-        });
-        fetchCourses();
-      }
-    } catch (error) {
-      console.error("Error saving course:", error);
-    }
-  };
-
-  const addModule = () => {
-    const newModule: Partial<Module> = {
-      title: t("admin.courses.defaultModuleTitle"),
-      order: courseData.modules?.length || 0,
-      lessons: [],
-    };
-    setCourseData({
-      ...courseData,
-      modules: [...(courseData.modules || []), newModule as Module],
-    });
-  };
-
-  const removeModule = (mIdx: number) => {
-    const newModules = [...(courseData.modules || [])];
-    newModules.splice(mIdx, 1);
-    setCourseData({ ...courseData, modules: newModules });
-  };
-
-  const updateModuleTitle = (mIdx: number, title: string) => {
-    const newModules = [...(courseData.modules || [])];
-    newModules[mIdx].title = title;
-    setCourseData({ ...courseData, modules: newModules });
-  };
-
-  const addLesson = (mIdx: number) => {
-    const newLesson: Partial<Lesson> = {
-      title: t("admin.courses.defaultLessonTitle"),
-      order: courseData.modules?.[mIdx].lessons?.length || 0,
-      isFreePreview: false,
-    };
-    const newModules = [...(courseData.modules || [])];
-    newModules[mIdx].lessons = [
-      ...(newModules[mIdx].lessons || []),
-      newLesson as Lesson,
-    ];
-    setCourseData({ ...courseData, modules: newModules });
-  };
-
-  const removeLesson = (mIdx: number, lIdx: number) => {
-    const newModules = [...(courseData.modules || [])];
-    newModules[mIdx].lessons?.splice(lIdx, 1);
-    setCourseData({ ...courseData, modules: newModules });
-  };
-
-  const updateLesson = (
-    mIdx: number,
-    lIdx: number,
-    field: keyof Lesson,
-    value: any,
-  ) => {
-    const newModules = [...(courseData.modules || [])];
-    if (newModules[mIdx].lessons) {
-      (newModules[mIdx].lessons![lIdx] as any)[field] = value;
-    }
-    setCourseData({ ...courseData, modules: newModules });
   };
 
   const handleSubmitInstructor = async (e: FormEvent) => {
@@ -455,6 +522,8 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     },
     { id: "slider", label: t("admin.slider.title"), icon: Video },
     { id: "courses", label: t("admin.sidebar.courses"), icon: BookOpen },
+    { id: "events", label: t("admin.sidebar.events"), icon: Calendar },
+    { id: "articles", label: t("admin.sidebar.articles"), icon: FileText },
     {
       id: "instructors",
       label: t("admin.sidebar.instructors"),
@@ -462,8 +531,8 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     },
     { id: "settings", label: t("admin.sidebar.settings"), icon: SettingsIcon },
     { id: "orders", label: t("admin.sidebar.orders"), icon: ShoppingBag },
-    { id: "contacts", label: t("admin.sidebar.contacts"), icon: MessageSquare },
     { id: "users", label: t("admin.sidebar.users"), icon: Users },
+    { id: "announcements", label: "Notifications & Meets", icon: MessageSquare },
   ];
 
   const changeLanguage = (lng: string) => {
@@ -479,74 +548,8 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafaf9] flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-100 flex flex-col">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-[#1E3A8A]">
-            {t("admin.panelTitle")}
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            {t("admin.panelSubtitle")}
-          </p>
-        </div>
-
-        <nav className="flex-grow p-4 space-y-1">
-          <Link
-            to="/"
-            className="w-full flex items-center px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-all mb-4"
-          >
-            <ArrowLeft size={18} className="mr-3" />
-            {t("admin.sidebar.backToSite")}
-          </Link>
-
-          {sidebarItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
-              className={`w-full flex items-center px-4 py-3 rounded-lg transition-all ${
-                activeTab === item.id
-                  ? "bg-blue-50 text-[#1E3A8A] font-medium"
-                  : "text-gray-600 hover:bg-gray-50"
-              }`}
-              id={`nav-${item.id}`}
-            >
-              <item.icon size={18} className="mr-3" />
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-gray-100 space-y-4">
-          <div className="flex items-center space-x-2 px-4 py-2 bg-gray-50 rounded-lg">
-            <Globe size={16} className="text-gray-400" />
-            <button
-              onClick={() => changeLanguage("fr")}
-              className={`text-xs font-bold ${i18n.language === "fr" ? "text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
-            >
-              FR
-            </button>
-            <span className="text-gray-300">|</span>
-            <button
-              onClick={() => changeLanguage("en")}
-              className={`text-xs font-bold ${i18n.language === "en" ? "text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
-            >
-              EN
-            </button>
-          </div>
-
-          <button
-            onClick={onLogout}
-            className="flex items-center text-gray-500 hover:text-red-500 transition-colors w-full px-4 py-2"
-          >
-            <LogOut size={18} className="mr-3" />
-            {t("admin.sidebar.logout")}
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-grow p-8 overflow-y-auto">
+    <AdminLayout onLogout={onLogout}>
+      <div className="p-8">
         <header className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
@@ -556,7 +559,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
           </div>
           <div className="flex space-x-4">
             <button
-              onClick={() => setActiveTab("settings")}
+              onClick={() => navigate("/admin?tab=settings")}
               className={`p-2 transition-colors ${activeTab === "settings" ? "text-[#1E3A8A]" : "text-gray-400 hover:text-gray-600"}`}
               id="btn-settings-header"
             >
@@ -577,7 +580,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
               {[
                 {
                   label: t("admin.dashboard.totalRevenue"),
-                  value: `${orders.reduce((acc, o) => acc + o.totalPrice, 0).toLocaleString()} ${settings.currencySymbol}`,
+                  value: `${orders.reduce((acc, o) => acc + Number(o.totalPrice || 0), 0).toLocaleString()} ${settings.currencySymbol}`,
                   icon: ShoppingBag,
                   color: "text-green-600",
                   bg: "bg-green-50",
@@ -597,16 +600,16 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                   bg: "bg-purple-50",
                 },
                 {
-                  label: t("admin.dashboard.messages"),
-                  value: contacts.length,
-                  icon: MessageSquare,
+                  label: t("admin.dashboard.totalOrders"),
+                  value: orders.length,
+                  icon: FileText,
                   color: "text-orange-600",
                   bg: "bg-orange-50",
                 },
               ].map((stat, idx) => (
                 <div
                   key={idx}
-                  className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm"
+                  className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm w-full overflow-hidden"
                 >
                   <div
                     className={`p-3 rounded-lg ${stat.bg} ${stat.color} w-fit mb-4`}
@@ -614,7 +617,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     <stat.icon size={24} />
                   </div>
                   <p className="text-gray-500 text-sm">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                  <p className="text-2xl font-bold text-gray-900 mt-1 truncate overflow-hidden" title={typeof stat.value === 'string' ? stat.value : undefined}>
                     {stat.value}
                   </p>
                 </div>
@@ -636,7 +639,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                           {t("admin.common.amount")}
                         </th>
                         <th className="pb-3 px-4">
-                          {t("admin.common.status")}
+                          {t("admin.common.statusLabel")}
                         </th>
                       </tr>
                     </thead>
@@ -688,7 +691,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                   {courses.length} {t("admin.courses.title")}
                 </p>
                 <button
-                  onClick={() => setIsAddingCourse(true)}
+                  onClick={() => navigate("/admin/courses/new")}
                   className="bg-[#1E3A8A] text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-800 transition-colors"
                   id="btn-add-course"
                 >
@@ -745,16 +748,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         </td>
                         <td className="p-4 text-right space-x-2">
                           <button
-                            onClick={async () => {
-                              // Fetch full course with modules
-                              const res = await fetch(
-                                `/api/courses/${course.slug}`,
-                              );
-                              const fullCourse = await res.json();
-                              setEditingCourse(fullCourse);
-                              setCourseData(fullCourse);
-                              setIsAddingCourse(true);
-                            }}
+                            onClick={() => navigate(`/admin/courses/${course.id}`)}
                             className="text-blue-600 hover:text-blue-800 p-2"
                             id={`edit-${course.id}`}
                           >
@@ -773,375 +767,6 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                   </tbody>
                 </table>
               </div>
-
-              {isAddingCourse && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                  <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8"
-                  >
-                    <h3 className="text-xl font-bold mb-6">
-                      {editingCourse
-                        ? t("admin.courses.editCourse")
-                        : t("admin.courses.newCourse")}
-                    </h3>
-                    <form onSubmit={handleSubmitCourse} className="space-y-8">
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.common.title")}
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={courseData.title}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                title: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          />
-                        </div>
-
-                        <div className="col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.courses.shortDescription")}
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={courseData.shortDescription}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                shortDescription: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          />
-                        </div>
-
-                        <div className="col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.courses.fullDescription")}
-                          </label>
-                          <textarea
-                            required
-                            value={courseData.fullDescription}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                fullDescription: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none h-32"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.common.price")} ({settings.currencySymbol}
-                            )
-                          </label>
-                          <input
-                            type="number"
-                            required
-                            value={courseData.price}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                price: Number(e.target.value),
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.courses.discountPrice")}
-                          </label>
-                          <input
-                            type="number"
-                            value={courseData.discountPrice || ""}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                discountPrice: Number(e.target.value),
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.courses.category")}
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={courseData.category}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                category: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.courses.level")}
-                          </label>
-                          <select
-                            value={courseData.level}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                level: e.target.value as any,
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          >
-                            <option value="beginner">
-                              {t("admin.courses.beginner")}
-                            </option>
-                            <option value="intermediate">
-                              {t("admin.courses.intermediate")}
-                            </option>
-                            <option value="advanced">
-                              {t("admin.courses.advanced")}
-                            </option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.common.instructor")}
-                          </label>
-                          <select
-                            required
-                            value={courseData.instructorId}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                instructorId: Number(e.target.value),
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          >
-                            <option value="">{t("admin.common.select")}</option>
-                            {instructors.map((inst) => (
-                              <option key={inst.id} value={inst.id}>
-                                {inst.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t("admin.courses.duration")}
-                          </label>
-                          <input
-                            type="text"
-                            value={courseData.duration}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                duration: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          />
-                        </div>
-
-                        <div className="col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Thumbnail (Image URL)
-                          </label>
-                          <input
-                            type="url"
-                            required
-                            value={courseData.thumbnail}
-                            onChange={(e) =>
-                              setCourseData({
-                                ...courseData,
-                                thumbnail: e.target.value,
-                              })
-                            }
-                            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="border-t border-gray-100 pt-8 mt-8">
-                        <div className="flex justify-between items-center mb-6">
-                          <h4 className="text-lg font-bold">
-                            {t("admin.courses.contentStructure")}
-                          </h4>
-                          <button
-                            type="button"
-                            onClick={addModule}
-                            className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded flex items-center hover:bg-gray-200"
-                          >
-                            <Plus size={14} className="mr-1" />{" "}
-                            {t("admin.courses.addModule")}
-                          </button>
-                        </div>
-
-                        <div className="space-y-6">
-                          {courseData.modules?.map((module, mIdx) => (
-                            <div
-                              key={mIdx}
-                              className="bg-gray-50 p-6 rounded-xl border border-gray-200 relative"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => removeModule(mIdx)}
-                                className="absolute top-4 right-4 text-red-400 hover:text-red-600"
-                              >
-                                <X size={20} />
-                              </button>
-                              <div className="mb-4 pr-10">
-                                <label className="block text-xs font-bold uppercase text-gray-400 mb-1">
-                                  {t("admin.courses.moduleTitle")}
-                                </label>
-                                <input
-                                  type="text"
-                                  value={module.title}
-                                  onChange={(e) =>
-                                    updateModuleTitle(mIdx, e.target.value)
-                                  }
-                                  className="w-full bg-transparent text-lg font-bold border-b border-gray-300 focus:border-blue-500 outline-none pb-1"
-                                />
-                              </div>
-
-                              <div className="space-y-3 ml-6">
-                                {module.lessons?.map((lesson, lIdx) => (
-                                  <div
-                                    key={lIdx}
-                                    className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex gap-4"
-                                  >
-                                    <div className="flex-grow space-y-4">
-                                      <div className="flex items-center justify-between">
-                                        <input
-                                          type="text"
-                                          value={lesson.title}
-                                          onChange={(e) =>
-                                            updateLesson(
-                                              mIdx,
-                                              lIdx,
-                                              "title",
-                                              e.target.value,
-                                            )
-                                          }
-                                          placeholder={t(
-                                            "admin.courses.lessonTitle",
-                                          )}
-                                          className="font-semibold text-gray-800 border-none outline-none focus:ring-0 w-full"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            removeLesson(mIdx, lIdx)
-                                          }
-                                          className="text-gray-300 hover:text-red-500"
-                                        >
-                                          <Trash2 size={16} />
-                                        </button>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div className="flex items-center bg-gray-50 px-3 py-2 rounded-lg">
-                                          <Video
-                                            size={14}
-                                            className="text-gray-400 mr-2"
-                                          />
-                                          <input
-                                            type="text"
-                                            value={lesson.videoUrl || ""}
-                                            onChange={(e) =>
-                                              updateLesson(
-                                                mIdx,
-                                                lIdx,
-                                                "videoUrl",
-                                                e.target.value,
-                                              )
-                                            }
-                                            placeholder={t(
-                                              "admin.courses.videoUrl",
-                                            )}
-                                            className="bg-transparent text-sm w-full outline-none"
-                                          />
-                                        </div>
-                                        <div className="flex items-center bg-gray-50 px-3 py-2 rounded-lg">
-                                          <Clock
-                                            size={14}
-                                            className="text-gray-400 mr-2"
-                                          />
-                                          <input
-                                            type="text"
-                                            value={lesson.duration || ""}
-                                            onChange={(e) =>
-                                              updateLesson(
-                                                mIdx,
-                                                lIdx,
-                                                "duration",
-                                                e.target.value,
-                                              )
-                                            }
-                                            placeholder={t(
-                                              "admin.courses.duration",
-                                            )}
-                                            className="bg-transparent text-sm w-full outline-none"
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                                <button
-                                  type="button"
-                                  onClick={() => addLesson(mIdx)}
-                                  className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center"
-                                >
-                                  <Plus size={14} className="mr-1" />{" "}
-                                  {t("admin.courses.addLesson")}
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end space-x-3 mt-10">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsAddingCourse(false);
-                            setEditingCourse(null);
-                          }}
-                          className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors font-bold"
-                        >
-                          {t("admin.common.cancel")}
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-10 py-2 bg-[#1E3A8A] text-white rounded-xl hover:bg-blue-800 transition-colors shadow-lg shadow-blue-500/20 font-bold"
-                        >
-                          {t("admin.common.save")}
-                        </button>
-                      </div>
-                    </form>
-                  </motion.div>
-                </div>
-              )}
             </motion.div>
           )}
 
@@ -1346,6 +971,175 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
             </motion.div>
           )}
 
+          {activeTab === "events" && (
+            <motion.div
+              key="events"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <p className="text-gray-500">
+                  {events.length} {t("admin.sidebar.events")}
+                </p>
+                <button
+                  onClick={() => navigate("/admin/events/new")}
+                  className="bg-[#1E3A8A] text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-800 transition-colors"
+                >
+                  <Plus size={18} className="mr-2" />
+                  {t('admin.sidebar.events')}
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <th className="p-4">{t('admin.events.title')}</th>
+                      <th className="p-4">{t('admin.events.date')}</th>
+                      <th className="p-4">{t('admin.events.type')}</th>
+                      <th className="p-4">{t('admin.events.price')}</th>
+                      <th className="p-4">{t('admin.events.status')}</th>
+                      <th className="p-4 text-right">{t('admin.common.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {events.map((event) => (
+                      <tr key={event.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center">
+                            <img
+                              src={event.banner}
+                              alt=""
+                              className="w-10 h-10 rounded-lg object-cover mr-3"
+                            />
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {i18n.language === 'fr' ? event.title_fr : event.title_en}
+                              </div>
+                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                <MapPin size={10} />
+                                {event.location}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">
+                           <div className="flex flex-col">
+                             <span className="font-medium">{new Date(event.eventDate).toLocaleDateString(i18n.language)}</span>
+                             <span className="text-xs text-gray-400 font-bold">{new Date(event.eventDate).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}</span>
+                           </div>
+                        </td>
+                        <td className="p-4 text-sm">
+                           <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${event.type === 'free' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                             {event.type}
+                           </span>
+                        </td>
+                        <td className="p-4 text-sm font-semibold text-gray-900">
+                          {event.type === 'free' ? '-' : `${event.price} ${settings.currencySymbol}`}
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider ${event.status === 'published' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                            {event.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right space-x-2">
+                          <button
+                            onClick={() => navigate(`/admin/events/${event.id}`)}
+                            className="text-blue-600 hover:text-blue-800 p-2"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteEvent(event.id)}
+                            className="text-red-600 hover:text-red-800 p-2"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "articles" && (
+            <motion.div
+              key="articles"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <p className="text-gray-500">
+                  {articles.length} {t('admin.sidebar.articles')}
+                </p>
+                <button
+                  onClick={() => navigate("/admin/articles/new")}
+                  className="bg-[#1E3A8A] text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-800 transition-colors"
+                >
+                  <Plus size={18} className="mr-2" />
+                  {t('admin.sidebar.articles')}
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <th className="p-4">{t('admin.articles.title')}</th>
+                      <th className="p-4">{t('admin.articles.category')}</th>
+                      <th className="p-4">{t('admin.articles.status')}</th>
+                      <th className="p-4">{t('admin.articles.date')}</th>
+                      <th className="p-4 text-right">{t('admin.common.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {articles.map((article) => (
+                      <tr key={article.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden mr-3 bg-gray-100">
+                              <img src={article.image} alt="" className="w-full h-full object-cover" />
+                            </div>
+                            <span className="font-medium text-gray-900">{article.title}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">{article.category}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider ${article.status === 'published' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                            {article.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-sm text-gray-400">
+                          {new Date(article.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="p-4 text-right space-x-2">
+                          <button
+                            onClick={() => navigate(`/admin/articles/${article.id}`)}
+                            className="text-blue-600 hover:text-blue-800 p-2"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteArticle(article.id)}
+                            className="text-red-600 hover:text-red-800 p-2"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
           {activeTab === "orders" && (
             <motion.div
               key="orders"
@@ -1361,76 +1155,75 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     <th className="p-4">{t("admin.common.client")}</th>
                     <th className="p-4">{t("admin.common.amount")}</th>
                     <th className="p-4">{t("admin.common.date")}</th>
-                    <th className="p-4">{t("admin.common.status")}</th>
+                    <th className="p-4">{t("admin.common.statusLabel")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {orders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="p-4 text-sm font-mono text-gray-500">
-                        #{order.id}
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium text-gray-900">
-                          {order.userName}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {order.userEmail}
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm font-semibold text-gray-900">
-                        {order.totalPrice.toLocaleString()}{" "}
-                        {settings.currencySymbol}
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">
-                        {new Date(order.createdAt).toLocaleString()}
-                      </td>
-                      <td className="p-4">
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-50 text-green-600">
-                          {order.status === "pending"
-                            ? t("admin.common.status")
-                            : order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {orders.map((order) => {
+                    let billing = null;
+                    if (order.billing_address) {
+                      try {
+                        billing = JSON.parse(order.billing_address);
+                      } catch (e) {}
+                    }
+                    return (
+                    <React.Fragment key={order.id}>
+                      <tr className="hover:bg-gray-50 transition-colors">
+                        <td className="p-4 text-sm font-mono text-gray-500">
+                          #{order.id}
+                        </td>
+                        <td className="p-4">
+                          <div className="font-medium text-gray-900">
+                            {order.userName}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {order.userEmail}
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm font-semibold text-gray-900">
+                          {order.totalPrice.toLocaleString()}{" "}
+                          {settings.currencySymbol}
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">
+                          {new Date(order.createdAt).toLocaleString()}
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${order.status === 'pending' ? 'bg-yellow-50 text-yellow-600' : 'bg-green-50 text-green-600'}`}>
+                            {order.status === "pending"
+                              ? (i18n.language === 'fr' ? 'En attente' : 'Pending')
+                              : order.status === "completed"
+                              ? t("admin.common.completed")
+                              : order.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">
+                          {billing && (
+                            <button
+                              onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                              className="text-xs text-blue-600 hover:underline"
+                            >
+                              {expandedOrderId === order.id ? "Masquer Adresse" : "Voir Adresse"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                      {expandedOrderId === order.id && billing && (
+                        <tr className="bg-gray-50/50">
+                          <td colSpan={6} className="p-4">
+                            <div className="p-4 bg-white border border-gray-100 rounded-xl max-w-lg shadow-sm">
+                              <h4 className="text-sm font-bold text-gray-900 mb-2">Adresse de Facturation</h4>
+                              <p className="text-sm text-gray-600"><strong>Nom:</strong> {billing.fullName}</p>
+                              <p className="text-sm text-gray-600"><strong>Adresse:</strong> {billing.address}</p>
+                              <p className="text-sm text-gray-600"><strong>Ville:</strong> {billing.city}</p>
+                              <p className="text-sm text-gray-600"><strong>Code Postal:</strong> {billing.postalCode}</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )})}
                 </tbody>
               </table>
-            </motion.div>
-          )}
-
-          {activeTab === "contacts" && (
-            <motion.div
-              key="contacts"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6"
-            >
-              {contacts.map((contact) => (
-                <div
-                  key={contact.id}
-                  className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="font-bold text-gray-900">
-                        {contact.name}
-                      </h4>
-                      <p className="text-sm text-gray-500">{contact.email}</p>
-                    </div>
-                    <span className="text-xs text-gray-400">
-                      {new Date(contact.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg text-sm text-gray-600 leading-relaxed italic">
-                    "{contact.message}"
-                  </div>
-                </div>
-              ))}
             </motion.div>
           )}
 
@@ -1662,7 +1455,763 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              {/* Cloud Storage Settings */}
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-xl font-bold mb-6 flex items-center">
+                  <Globe className="w-5 h-5 text-blue-600 mr-3" />
+                  {t("admin.settings.cloudStorage") || "Cloud Storage"}
+                </h3>
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t("admin.settings.activeProvider") || "Active Storage Provider"}
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      {["supabase", "s3", "bunny", "gcs", "backblaze"].map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setSettingsData({ ...settingsData, storage_provider: p as any })}
+                          className={`p-4 border rounded-xl flex flex-col items-center justify-center space-y-2 transition-all ${
+                            settingsData.storage_provider === p
+                              ? "border-blue-500 bg-blue-50 text-blue-700 font-bold"
+                              : "border-gray-100 bg-gray-50 text-gray-500 hover:bg-gray-100"
+                          }`}
+                        >
+                          <span className="uppercase text-xs">{p}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {settingsData.storage_provider === "backblaze" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+                      <div className="col-span-full font-bold text-sm text-gray-800">Backblaze B2 (S3 Compatible)</div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-medium text-gray-500">Key ID</label>
+                          {settingsData._envStatus?.b2_access && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase tracking-wider scale-75 origin-right">In ENV</span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={settingsData.b2_key_id || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, b2_key_id: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                          placeholder="004...XXXX"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Application Key</label>
+                        <input
+                          type="password"
+                          value={settingsData.b2_application_key || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, b2_application_key: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                          placeholder="K004...XXXX"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Bucket Name</label>
+                        <input
+                          type="text"
+                          value={settingsData.b2_bucket || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, b2_bucket: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                          placeholder="my-bucket"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">S3 Endpoint</label>
+                        <input
+                          type="text"
+                          value={settingsData.b2_endpoint || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, b2_endpoint: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                          placeholder="s3.us-west-004.backblazeb2.com"
+                        />
+                      </div>
+                      <div className="col-span-full text-[10px] text-gray-400">
+                        <p>Note: Backblaze B2 files are served via the S3 endpoint. Ensure your bucket is public or use a CDN if needed.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsData.storage_provider === "s3" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+                      <div className="col-span-full font-bold text-sm text-gray-800">AWS S3 / Cloudflare R2 / S3 Compatible</div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-medium text-gray-500">Access Key</label>
+                          {settingsData._envStatus?.s3_access && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase tracking-wider scale-75 origin-right">In ENV</span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={settingsData.s3_access_key || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, s3_access_key: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Secret Key</label>
+                        <input
+                          type="password"
+                          value={settingsData.s3_secret_key || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, s3_secret_key: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Region</label>
+                        <input
+                          type="text"
+                          placeholder="us-east-1"
+                          value={settingsData.s3_region || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, s3_region: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Bucket Name</label>
+                        <input
+                          type="text"
+                          value={settingsData.s3_bucket || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, s3_bucket: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div className="col-span-full">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Endpoint URL (Optional for R2/Other)</label>
+                        <input
+                          type="url"
+                          placeholder="https://..."
+                          value={settingsData.s3_endpoint || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, s3_endpoint: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div className="col-span-full">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Custom Public URL (Optional)</label>
+                        <input
+                          type="url"
+                          placeholder="https://cdn.example.com"
+                          value={settingsData.s3_custom_url || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, s3_custom_url: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsData.storage_provider === "bunny" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+                      <div className="col-span-full font-bold text-sm text-gray-800">BunnyCDN Settings</div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Storage Zone Name</label>
+                        <input
+                          type="text"
+                          value={settingsData.bunny_storage_zone || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, bunny_storage_zone: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-medium text-gray-500">Storage API Key</label>
+                          {settingsData._envStatus?.bunny_key && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase tracking-wider scale-75 origin-right">In ENV</span>
+                          )}
+                        </div>
+                        <input
+                          type="password"
+                          value={settingsData.bunny_api_key || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, bunny_api_key: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div className="col-span-full">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Pull Zone URL (e.g. https://myzone.b-cdn.net)</label>
+                        <input
+                          type="url"
+                          value={settingsData.bunny_pull_zone_url || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, bunny_pull_zone_url: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsData.storage_provider === "gcs" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+                      <div className="col-span-full font-bold text-sm text-gray-800">Google Cloud Storage</div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-medium text-gray-500">Project ID</label>
+                          {settingsData._envStatus?.gcs_project && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase tracking-wider scale-75 origin-right">In ENV</span>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={settingsData.gcs_project_id || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, gcs_project_id: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Bucket Name</label>
+                        <input
+                          type="text"
+                          value={settingsData.gcs_bucket || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, gcs_bucket: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div className="col-span-full">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">JSON Key Credentials</label>
+                        <textarea
+                          value={settingsData.gcs_credentials || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, gcs_credentials: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm h-32 font-mono"
+                          placeholder='{"type": "service_account", ...}'
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {(!settingsData.storage_provider || settingsData.storage_provider === "supabase") && (
+                    <div className="pt-4 border-t border-gray-50 space-y-6">
+                      <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start space-x-3 shadow-sm">
+                        <CheckCircle className="text-blue-600 mt-1" size={18} />
+                        <div className="text-xs text-blue-700 leading-relaxed">
+                          Supabase storage is configured. You can enter credentials below to override environment variables. Use the bucket named <code className="bg-blue-100 px-1 rounded font-bold">media</code>.
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-xs font-black uppercase text-gray-400 tracking-widest">Supabase URL</label>
+                            {settingsData._envStatus?.supabase_url && (
+                              <span className="flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-black rounded uppercase tracking-wider scale-75 origin-right">
+                                <Globe size={10} /> In ENV
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="https://your-project.supabase.co"
+                            value={settingsData.supabase_url || ""}
+                            onChange={(e) => setSettingsData({ ...settingsData, supabase_url: e.target.value })}
+                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm transition-all"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-xs font-black uppercase text-gray-400 tracking-widest">Supabase Anon Key</label>
+                            {settingsData._envStatus?.supabase_anon_key && (
+                              <span className="flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-black rounded uppercase tracking-wider scale-75 origin-right">
+                                <Shield size={10} /> In ENV
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="password"
+                            placeholder="your-anon-key"
+                            value={settingsData.supabase_anon_key || ""}
+                            onChange={(e) => setSettingsData({ ...settingsData, supabase_anon_key: e.target.value })}
+                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* API & Backend Configurations */}
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-xl font-bold mb-6 flex items-center">
+                  <Key className="w-5 h-5 text-blue-600 mr-3" />
+                  API & Backend Configurations
+                </h3>
+                <div className="space-y-6">
+                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start space-x-3 mb-4">
+                    <Shield className="text-amber-600 mt-1" size={18} />
+                    <div className="text-xs text-amber-700 leading-relaxed">
+                      <strong>Environment Managed:</strong> Your core backend (Supabase & JWT) is managed via environment variables. Use the field below for AI feature configurations.
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-700">Gemini AI API Key</label>
+                        {settingsData._envStatus?.gemini_api_key && (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase tracking-wider">Active in ENV</span>
+                        )}
+                      </div>
+                      <input
+                        type="password"
+                        placeholder="AI API Key"
+                        value={settingsData.gemini_api_key || ""}
+                        onChange={(e) => setSettingsData({ ...settingsData, gemini_api_key: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SMTP configuration */}
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-xl font-bold mb-6 flex items-center">
+                  <MessageSquare className="w-5 h-5 text-blue-600 mr-3" />
+                  {t('admin.settings.smtpConfig')}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.smtpHost')}</label>
+                    <input
+                      type="text"
+                      value={settingsData.smtp_host || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, smtp_host: e.target.value })}
+                      placeholder="smtp.example.com"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.smtpPort')}</label>
+                    <input
+                      type="number"
+                      value={settingsData.smtp_port || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, smtp_port: Number(e.target.value) })}
+                      placeholder="587"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.smtpUser')}</label>
+                    <input
+                      type="text"
+                      value={settingsData.smtp_user || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, smtp_user: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.smtpPass')}</label>
+                    <input
+                      type="password"
+                      value={settingsData.smtp_pass || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, smtp_pass: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.smtpFrom')}</label>
+                    <input
+                      type="email"
+                      value={settingsData.smtp_from || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, smtp_from: e.target.value })}
+                      placeholder="noreply@example.com"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.settings.smtpAdmin')}</label>
+                    <input
+                      type="email"
+                      value={settingsData.smtp_admin || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, smtp_admin: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-3 pt-4">
+                    <input
+                      type="checkbox"
+                      checked={settingsData.smtp_secure || false}
+                      onChange={(e) => setSettingsData({ ...settingsData, smtp_secure: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded"
+                    />
+                    <label className="text-sm font-medium text-gray-700">Utiliser SSL/TLS (Port 465)</label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Gateway: Chargily */}
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                    <CreditCard className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Chargily Pay V2</h3>
+                    <p className="text-sm text-gray-500">Manage your payment gateway mode and keys</p>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-bold text-gray-700 mb-3">Operating Mode</label>
+                  <select
+                    value={settingsData.chargily_mode || 'test'}
+                    onChange={(e) => setSettingsData({ ...settingsData, chargily_mode: e.target.value as 'test' | 'live' })}
+                    className="w-full md:w-64 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-medium"
+                  >
+                    <option value="test">Test Mode</option>
+                    <option value="live">Live Mode</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Test Keys */}
+                  <div className="space-y-4 p-5 bg-gray-50/50 border border-gray-100 rounded-xl">
+                    <h4 className="text-md font-bold text-gray-800 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+                      Test Mode Keys
+                    </h4>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 mb-1">Test Public Key</label>
+                      <input
+                        type="text"
+                        value={settingsData.chargily_test_public_key || ""}
+                        onChange={(e) => setSettingsData({ ...settingsData, chargily_test_public_key: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="test_pk_..."
+                      />
+                      {settingsData._envStatus?.chargily_test_public_key && !settingsData.chargily_test_public_key && (
+                        <p className="text-xs text-green-600 mt-1 font-medium">Using key from ENV file</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 mb-1">Test Secret Key</label>
+                      <input
+                        type="password"
+                        value={settingsData.chargily_test_secret_key || ""}
+                        onChange={(e) => setSettingsData({ ...settingsData, chargily_test_secret_key: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="test_sk_..."
+                      />
+                      {settingsData._envStatus?.chargily_test_secret_key && !settingsData.chargily_test_secret_key && (
+                        <p className="text-xs text-green-600 mt-1 font-medium">Using key from ENV file</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Live Keys */}
+                  <div className="space-y-4 p-5 bg-gray-50/50 border border-gray-100 rounded-xl">
+                    <h4 className="text-md font-bold text-gray-800 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                      Live Mode Keys
+                    </h4>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 mb-1">Live Public Key</label>
+                      <input
+                        type="text"
+                        value={settingsData.chargily_live_public_key || ""}
+                        onChange={(e) => setSettingsData({ ...settingsData, chargily_live_public_key: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="live_pk_..."
+                      />
+                      {settingsData._envStatus?.chargily_live_public_key && !settingsData.chargily_live_public_key && (
+                        <p className="text-xs text-green-600 mt-1 font-medium">Using key from ENV file</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 mb-1">Live Secret Key</label>
+                      <input
+                        type="password"
+                        value={settingsData.chargily_live_secret_key || ""}
+                        onChange={(e) => setSettingsData({ ...settingsData, chargily_live_secret_key: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        placeholder="live_sk_..."
+                      />
+                      {settingsData._envStatus?.chargily_live_secret_key && !settingsData.chargily_live_secret_key && (
+                        <p className="text-xs text-green-600 mt-1 font-medium">Using key from ENV file</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={handleSaveSettings}
+                    className="flex items-center px-6 py-2 bg-[#1E3A8A] text-white rounded-lg font-bold text-sm hover:bg-blue-800 transition-all shadow-md"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Payment Settings
+                  </button>
+                </div>
+              </div>
+
+              {/* Website Contact & Footer Details */}
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm mt-6">
+                <h3 className="text-xl font-bold mb-6 flex items-center">
+                  <Globe className="w-5 h-5 text-blue-600 mr-3" />
+                  Contact, Legal & Footer Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                    <input
+                      type="email"
+                      value={settingsData.contact_email || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, contact_email: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Phone</label>
+                    <input
+                      type="text"
+                      value={settingsData.contact_phone || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, contact_phone: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Footer Copyright Name</label>
+                    <input
+                      type="text"
+                      value={settingsData.footer_copyright || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, footer_copyright: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="col-span-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Address</label>
+                    <textarea
+                      value={settingsData.contact_address || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, contact_address: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="col-span-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Footer Description</label>
+                    <textarea
+                      value={settingsData.footer_desc || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, footer_desc: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="col-span-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Terms & Conditions URL (Optional, overrides content below)</label>
+                    <input
+                      type="text"
+                      value={settingsData.terms_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, terms_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="col-span-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Terms & Conditions (HTML/Text)</label>
+                    <textarea
+                      rows={10}
+                      value={settingsData.terms_html || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, terms_html: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+                      placeholder="<h1>Terms & Conditions</h1><p>Welcome to our website...</p>"
+                    />
+                  </div>
+                  <div className="col-span-full mt-4 border-t border-gray-100 pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Privacy Policy URL (Optional, overrides content below)</label>
+                    <input
+                      type="text"
+                      value={settingsData.privacy_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, privacy_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="col-span-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Privacy Policy (HTML/Text)</label>
+                    <textarea
+                      rows={10}
+                      value={settingsData.privacy_html || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, privacy_html: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+                      placeholder="<h1>Privacy Policy</h1><p>We respect your privacy...</p>"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={handleSaveSettings}
+                    className="flex items-center px-6 py-2 bg-[#1E3A8A] text-white rounded-lg font-bold text-sm hover:bg-blue-800 transition-all shadow-md"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Contact & Legal Details
+                  </button>
+                </div>
+              </div>
+
+              {/* Social Media Links */}
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-xl font-bold mb-6 flex items-center">
+                  <motion.div
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 4 }}
+                  >
+                    <Facebook className="w-5 h-5 text-blue-600 mr-3" />
+                  </motion.div>
+                  Social Media Configurations
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Facebook URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://facebook.com/your-page"
+                      value={settingsData.facebook_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, facebook_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Instagram URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://instagram.com/your-profile"
+                      value={settingsData.instagram_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, instagram_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">TikTok URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://tiktok.com/@your-handle"
+                      value={settingsData.tiktok_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, tiktok_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Twitter / X URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://twitter.com/your-handle"
+                      value={settingsData.twitter_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, twitter_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">LinkedIn URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://linkedin.com/in/your-profile"
+                      value={settingsData.linkedin_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, linkedin_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://youtube.com/@your-channel"
+                      value={settingsData.youtube_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, youtube_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={handleSaveSettings}
+                    className="flex items-center px-6 py-2 bg-[#1E3A8A] text-white rounded-lg font-bold text-sm hover:bg-blue-800 transition-all shadow-md"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Social Media Links
+                  </button>
+                </div>
+              </div>
+
+              {/* Floating Chat Popup Settings */}
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm mt-6">
+                <h3 className="text-xl font-bold mb-6 flex items-center">
+                  <MessageSquare className="w-5 h-5 text-blue-600 mr-3" />
+                  Floating Chat Settings
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center space-x-3 md:col-span-2 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={settingsData.floating_chat_enabled || false}
+                      onChange={(e) => setSettingsData({ ...settingsData, floating_chat_enabled: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded"
+                    />
+                    <label className="text-sm font-medium text-gray-700">Enable Floating Chat Button</label>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Social Icon</label>
+                    <select
+                      value={settingsData.floating_chat_icon || "whatsapp"}
+                      onChange={(e) => setSettingsData({ ...settingsData, floating_chat_icon: e.target.value as any })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="messenger">Messenger</option>
+                      <option value="telegram">Telegram</option>
+                      <option value="custom">Custom (Generic Chat Icon)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Chat Link / URL</label>
+                    <input
+                      type="url"
+                      placeholder="e.g. https://wa.me/213500000000"
+                      value={settingsData.floating_chat_url || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, floating_chat_url: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  
+                  {settingsData.floating_chat_icon === 'custom' && (
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Custom Chat Icon Image</label>
+                      <div className="flex items-center space-x-4">
+                        <div className="relative w-16 h-16 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden hover:bg-gray-100 transition-colors">
+                          {settingsData.floating_chat_custom_icon ? (
+                            <img
+                              src={settingsData.floating_chat_custom_icon}
+                              alt="Custom Chat Icon"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Upload className="text-gray-300 w-6 h-6" />
+                          )}
+                          <input
+                            type="file"
+                            onChange={(e) => handleLogoUpload(e, "floating_chat_custom_icon")}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                        </div>
+                        <div className="text-xs text-gray-400 space-y-1">
+                          <p>Format: SVG, PNG, JPG</p>
+                          <p>Upload a square image for best results.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={handleSaveSettings}
+                    className="flex items-center px-6 py-2 bg-[#1E3A8A] text-white rounded-lg font-bold text-sm hover:bg-blue-800 transition-all shadow-md"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Chat Settings
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-8">
                 <button
                   onClick={handleSaveSettings}
                   className="flex items-center justify-center px-10 py-3 bg-[#1E3A8A] text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-800 transition-all shadow-xl shadow-blue-500/20"
@@ -1670,6 +2219,138 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                   <Save className="w-5 h-5 mr-3" />
                   {t("admin.common.save")}
                 </button>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "announcements" && (
+            <motion.div
+              key="announcements"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-800 tracking-tight">Notifications & Live Classes</h2>
+                  <p className="text-sm text-gray-500 mt-1">Send meeting links and updates to course or event participants.</p>
+                </div>
+                <button
+                  onClick={() => setIsAddingAnnouncement(true)}
+                  className="flex items-center space-x-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+                >
+                  <Plus size={18} />
+                  <span>Send Notification</span>
+                </button>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-gray-50/50 border-b border-gray-100">
+                      <tr>
+                        <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Title</th>
+                        <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Target</th>
+                        <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Date</th>
+                        <th className="p-4 text-right text-xs font-bold text-gray-400 uppercase tracking-widest">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {announcements.map((ann) => (
+                        <tr key={ann.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="p-4">
+                            <p className="font-bold text-gray-800">{ann.title}</p>
+                            <p className="text-xs text-gray-500 line-clamp-1 mt-1">{ann.message}</p>
+                          </td>
+                          <td className="p-4">
+                            {ann.courseTitle ? (
+                              <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider">Course: {ann.courseTitle}</span>
+                            ) : ann.eventTitle ? (
+                              <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-purple-100 text-purple-700 uppercase tracking-wider">Event: {ann.eventTitle}</span>
+                            ) : (
+                              <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-gray-100 text-gray-700 uppercase tracking-wider">All</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-sm text-gray-500">
+                            {new Date(ann.createdAt).toLocaleString()}
+                          </td>
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => handleDeleteAnnouncement(ann.id)}
+                              className="text-red-500 hover:text-red-700 p-2"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {announcements.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-gray-400 text-sm">
+                            No notifications sent yet
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "email_templates" && (
+            <motion.div
+              key="email_templates"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-800 tracking-tight">Email Templates</h2>
+                  <p className="text-sm text-gray-500 mt-1">Manage email templates (order confirmations, password resets).</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-6 space-y-8">
+                {emailTemplates.map((template) => (
+                  <form key={template.key} className="border border-gray-100 rounded-xl p-6 shadow-sm" onSubmit={async (e) => {
+                    e.preventDefault();
+                    // update logic
+                    const subject = (e.currentTarget.elements.namedItem('subject') as HTMLInputElement).value;
+                    const body_html = (e.currentTarget.elements.namedItem('body_html') as HTMLTextAreaElement).value;
+                    try {
+                      await fetch(`/api/admin/email-templates/${template.key}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ subject, body_html })
+                      });
+                      alert('Template saved!');
+                    } catch (e) {
+                      console.error(e);
+                      alert('Error saving template');
+                    }
+                  }}>
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 uppercase tracking-widest text-[#1E3A8A]">{template.key}</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Subject</label>
+                        <input name="subject" defaultValue={template.subject} className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-sm text-gray-700" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">HTML Body</label>
+                        <textarea name="body_html" rows={6} defaultValue={template.body_html} className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-sm text-gray-700 font-mono resize-y" />
+                      </div>
+                      <div className="flex justify-end">
+                        <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold tracking-wide hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                          Save Template
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                ))}
               </div>
             </motion.div>
           )}
@@ -1995,6 +2676,87 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
           )}
         </AnimatePresence>
 
+        <AnimatePresence>
+          {isAddingAnnouncement && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+              >
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                  <h3 className="text-xl font-black text-gray-800 tracking-tight">Send Notification</h3>
+                  <button
+                    onClick={() => setIsAddingAnnouncement(false)}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                <form onSubmit={handleCreateAnnouncement} className="p-6 space-y-6">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Target Course (Optional)</label>
+                    <select
+                      value={newAnnouncement.courseId}
+                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, courseId: e.target.value, eventId: "" })}
+                      className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm text-gray-700"
+                    >
+                      <option value="">-- Select Course --</option>
+                      {courses.map((c) => (
+                        <option key={c.id} value={c.id.toString()}>{c.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Target Event (Optional)</label>
+                    <select
+                      value={newAnnouncement.eventId}
+                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, eventId: e.target.value, courseId: "" })}
+                      className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm text-gray-700"
+                    >
+                      <option value="">-- Select Event --</option>
+                      {events.map((ev) => (
+                        <option key={ev.id} value={ev.id.toString()}>{ev.title_en || ev.title_fr}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAnnouncement.title}
+                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm text-gray-700"
+                      placeholder="e.g. Live Class Today at 8PM"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Message Content / Links</label>
+                    <textarea
+                      required
+                      rows={5}
+                      value={newAnnouncement.message}
+                      onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
+                      className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm text-gray-700 resize-none"
+                      placeholder="Include meeting link, password, instructions etc."
+                    />
+                  </div>
+                  <div className="flex justify-end pt-4 border-t border-gray-100">
+                    <button
+                      type="submit"
+                      className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold tracking-wide hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+                    >
+                      Send Message
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Add Slider Item Modal */}
         <AnimatePresence>
           {isAddingSlide && (
@@ -2128,6 +2890,37 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     />
                   </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                        Texte du bouton (Slide)
+                      </label>
+                      <input
+                        type="text"
+                        value={newSlide.buttonText}
+                        onChange={(e) =>
+                          setNewSlide({ ...newSlide, buttonText: e.target.value })
+                        }
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none"
+                        placeholder="ex: En savoir plus"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                        Lien du bouton (Slide)
+                      </label>
+                      <input
+                        type="text"
+                        value={newSlide.buttonLink}
+                        onChange={(e) =>
+                          setNewSlide({ ...newSlide, buttonLink: e.target.value })
+                        }
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none"
+                        placeholder="ex: /formations"
+                      />
+                    </div>
+                  </div>
+
                   <div className="flex justify-end space-x-3 mt-8">
                     <button
                       type="button"
@@ -2162,6 +2955,6 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

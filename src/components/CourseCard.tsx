@@ -15,11 +15,19 @@ interface CourseCardProps {
 }
 
 export default function CourseCard({ course, onAddToCart, ctaText, showPrice = true }: CourseCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const defaultCtaText = t('course.enroll');
   const finalCtaText = ctaText || defaultCtaText;
 
   const thumbnail = course.thumbnail || (course as any).image;
+
+  const courseTitle = i18n.language === 'fr' 
+    ? (course.title_fr || course.title_en || course.title) 
+    : (course.title_en || course.title_fr || course.title);
+    
+  const courseDescription = i18n.language === 'fr'
+    ? (course.shortDescription_fr || course.shortDescription_en || course.shortDescription || (course as any).description)
+    : (course.shortDescription_en || course.shortDescription_fr || course.shortDescription || (course as any).description);
 
   return (
     <motion.div
@@ -29,7 +37,7 @@ export default function CourseCard({ course, onAddToCart, ctaText, showPrice = t
       <div className="relative h-64 overflow-hidden">
         <img
           src={thumbnail}
-          alt={course.title}
+          alt={courseTitle}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
         {showPrice && (
@@ -59,7 +67,7 @@ export default function CourseCard({ course, onAddToCart, ctaText, showPrice = t
                 </div>
               )}
               <div className="ml-3">
-                <span className="text-[10px] font-black text-[#3B2A8F]/40 uppercase tracking-[0.2em] block">Formateur</span>
+                <span className="text-[10px] font-black text-[#3B2A8F]/40 uppercase tracking-[0.2em] block">{t('course.instructor')}</span>
                 <span className="text-xs font-bold text-[#3B2A8F] group-hover/inst:text-blue-600 transition-colors uppercase tracking-tight">{course.instructorName}</span>
               </div>
             </Link>
@@ -70,10 +78,10 @@ export default function CourseCard({ course, onAddToCart, ctaText, showPrice = t
         </div>
         
         <h3 className="text-xl md:text-2xl font-black text-[#3B2A8F] mb-3 leading-[1.2] tracking-tighter transition-colors">
-          {t(`course.items.${course.title}.title`, course.title)}
+          {courseTitle}
         </h3>
         <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-2 flex-grow font-medium">
-          {t(`course.items.${course.title}.desc`, course.shortDescription || (course as any).description)}
+          {courseDescription}
         </p>
 
         <div className="space-y-6 pt-6 border-t border-gray-50">

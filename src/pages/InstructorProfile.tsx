@@ -4,7 +4,10 @@ import { motion } from 'motion/react';
 import { ChevronLeft, GraduationCap, Mail, Share2, BookOpen, Clock, Users } from 'lucide-react';
 import { Instructor, Course } from '../types';
 
+import { useTranslation } from 'react-i18next';
+
 export default function InstructorProfile() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [instructor, setInstructor] = useState<Instructor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,9 +36,9 @@ export default function InstructorProfile() {
   if (!instructor) {
     return (
       <div className="min-h-screen flex items-center justify-center flex-col p-4">
-        <h2 className="text-2xl font-bold mb-4">Instructeur non trouvé</h2>
+        <h2 className="text-2xl font-bold mb-4">{t('instructors.notFound')}</h2>
         <Link to="/instructors" className="text-[#1E3A8A] flex items-center">
-          <ChevronLeft className="mr-2" /> Retour à la liste
+          <ChevronLeft className="mr-2" /> {t('instructors.backToList')}
         </Link>
       </div>
     );
@@ -46,7 +49,7 @@ export default function InstructorProfile() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <Link to="/instructors" className="inline-flex items-center text-gray-400 hover:text-[#1E3A8A] transition-colors mb-8 group font-medium">
           <ChevronLeft className="mr-2 group-hover:-translate-x-1 transition-transform" size={20} />
-          Retour aux instructeurs
+          {t('instructors.backToList')}
         </Link>
 
         {/* Profile Header */}
@@ -71,7 +74,7 @@ export default function InstructorProfile() {
 
             <div className="md:ml-12 text-center md:text-left flex-grow">
               <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-blue-50 text-[#1E3A8A] text-xs font-bold uppercase tracking-wider mb-4">
-                Formateur Expert
+                {t('instructors.expertTag')}
               </div>
               <h1 className="text-4xl md:text-5xl font-black text-[#1B1B1B] mb-2 tracking-tight">
                 {instructor.name}
@@ -85,11 +88,11 @@ export default function InstructorProfile() {
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                 <button className="bg-[#1E3A8A] text-white px-8 py-4 rounded-2xl font-bold flex items-center hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/10 active:scale-95">
                   <Mail size={18} className="mr-2" />
-                  Contacter
+                  {t('instructors.contact')}
                 </button>
                 <button className="bg-white text-[#1B1B1B] border-2 border-gray-100 px-8 py-4 rounded-2xl font-bold flex items-center hover:bg-gray-50 transition-all active:scale-95">
                   <Share2 size={18} className="mr-2" />
-                  Partager
+                  {t('instructors.share')}
                 </button>
               </div>
             </div>
@@ -97,10 +100,10 @@ export default function InstructorProfile() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 pt-12 border-t border-gray-50 relative z-10">
             {[
-              { icon: BookOpen, label: 'Cours', value: instructor.courses?.length || 0 },
-              { icon: Users, label: 'Étudiants', value: '1.2k+' },
-              { icon: Clock, label: 'Heures', value: '450+' },
-              { icon: Share2, label: 'Note', value: '4.9/5' }
+              { icon: BookOpen, label: t('instructors.stats.courses'), value: instructor.courses?.length || 0 },
+              { icon: Users, label: t('instructors.stats.students'), value: '1.2k+' },
+              { icon: Clock, label: t('admin.common.duration'), value: '450+' },
+              { icon: Share2, label: t('instructors.stats.rating'), value: '4.9/5' }
             ].map((stat, i) => (
               <div key={i} className="text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start text-gray-400 mb-1">
@@ -116,9 +119,9 @@ export default function InstructorProfile() {
         {/* Instructor's Courses */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-black text-[#1B1B1B] tracking-tight">Formations par {instructor.name}</h2>
+            <h2 className="text-3xl font-black text-[#1B1B1B] tracking-tight">{t('instructors.coursesBy')} {instructor.name}</h2>
             <div className="h-1 flex-grow mx-8 bg-gray-100 rounded-full hidden md:block"></div>
-            <span className="text-gray-400 font-bold">{instructor.courses?.length || 0} Cours</span>
+            <span className="text-gray-400 font-bold">{instructor.courses?.length || 0} {t('instructors.stats.courses')}</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -131,7 +134,7 @@ export default function InstructorProfile() {
                 <Link to={`/courses/${course.id}`}>
                   <div className="relative h-56 overflow-hidden">
                     <img 
-                      src={course.image} 
+                      src={course.thumbnail || (course as any).image} 
                       alt={course.title} 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
@@ -144,7 +147,7 @@ export default function InstructorProfile() {
                       {course.title}
                     </h3>
                     <p className="text-gray-500 text-sm mb-6 line-clamp-2 leading-relaxed">
-                      {course.description}
+                      {course.shortDescription || (course as any).description}
                     </p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">

@@ -7,13 +7,29 @@ import Formations from './pages/Formations';
 import Boutique from './pages/Boutique';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import CheckoutSuccess from './pages/CheckoutSuccess';
+import CheckoutFailure from './pages/CheckoutFailure';
 import Contact from './pages/Contact';
 import Services from './pages/Services';
 import Payment from './pages/Payment';
 import Cart from './pages/Cart';
 import Admin from './pages/Admin';
+import AdminCourseEdit from './pages/AdminCourseEdit';
+import AdminEventEdit from './pages/AdminEventEdit';
+import AdminArticleEdit from './pages/AdminArticleEdit';
+import Dashboard from './pages/Dashboard';
 import Instructors from './pages/Instructors';
 import InstructorProfile from './pages/InstructorProfile';
+import Events from './pages/Events';
+import EventDetails from './pages/EventDetails';
+import Articles from './pages/Articles';
+import ArticleDetail from './pages/ArticleDetail';
+import CourseDetail from './pages/CourseDetail';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import FloatingChat from './components/FloatingChat';
 import { Course, CartItem, User } from './types';
 
 export default function App() {
@@ -92,6 +108,36 @@ export default function App() {
               )
             } 
           />
+          <Route 
+            path="/admin/courses/:id" 
+            element={
+              user && user.role === 'admin' ? (
+                <AdminCourseEdit onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/" />
+              )
+            } 
+          />
+          <Route 
+            path="/admin/events/:id" 
+            element={
+              user && user.role === 'admin' ? (
+                <AdminEventEdit onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/" />
+              )
+            } 
+          />
+          <Route 
+            path="/admin/articles/:id" 
+            element={
+              user && user.role === 'admin' ? (
+                <AdminArticleEdit onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/" />
+              )
+            } 
+          />
 
           {/* Public routes share Navbar and Footer */}
           <Route
@@ -103,6 +149,7 @@ export default function App() {
                   <Routes>
                     <Route path="/" element={<Home onAddToCart={addToCart} />} />
                     <Route path="/formations" element={<Formations onAddToCart={addToCart} />} />
+                    <Route path="/formations/:slug" element={<CourseDetail />} />
                     <Route 
                       path="/boutique" 
                       element={
@@ -116,10 +163,30 @@ export default function App() {
                     />
                     <Route path="/login" element={<Login onLogin={handleLogin} />} />
                     <Route path="/register" element={<Register onLogin={handleLogin} />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/checkout/success" element={<CheckoutSuccess />} />
+                    <Route path="/checkout/failure" element={<CheckoutFailure />} />
                     <Route path="/contact" element={<Contact />} />
+                    <Route path="/terms-and-conditions" element={<Terms />} />
+                    <Route path="/privacy-policy" element={<Privacy />} />
                     <Route path="/services" element={<Services />} />
                     <Route path="/instructors" element={<Instructors />} />
                     <Route path="/instructors/:id" element={<InstructorProfile />} />
+                    <Route path="/events" element={<Events />} />
+                    <Route path="/events/:id" element={<EventDetails addToCart={addToCart} />} />
+                    <Route path="/articles" element={<Articles />} />
+                    <Route path="/articles/:slug" element={<ArticleDetail />} />
+                    <Route 
+                      path="/dashboard" 
+                      element={
+                        user && user.role === 'user' ? (
+                          <Dashboard user={user} />
+                        ) : (
+                          <Navigate to="/login" />
+                        )
+                      } 
+                    />
                     <Route 
                       path="/cart" 
                       element={
@@ -131,7 +198,7 @@ export default function App() {
                       } 
                     />
                     <Route 
-                      path="/paiement" 
+                      path="/checkout/*" 
                       element={
                         user ? (
                           <Payment cart={cart} clearCart={clearCart} />
@@ -147,6 +214,7 @@ export default function App() {
             }
           />
         </Routes>
+        <FloatingChat />
       </div>
     </Router>
   );
