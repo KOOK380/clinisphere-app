@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useSettings } from "../contexts/SettingsContext";
 import { SliderItem, Event } from '../types';
 import { getEmbedUrl, isExternalVideo, isDirectVideo } from "../utils";
+import Price from '../components/Price';
 
 interface HomeProps {
   onAddToCart: (course: any) => void;
@@ -343,7 +344,7 @@ export default function Home({ onAddToCart }: HomeProps) {
                         />
                         <div className="absolute top-4 right-4">
                           <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg ${event.type === 'free' ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'}`}>
-                            {event.type === 'free' ? t('events.free') : `${event.price} DH`}
+                            {event.type === 'free' ? t('events.free') : <Price amount={event.price || 0} />}
                           </span>
                         </div>
                       </div>

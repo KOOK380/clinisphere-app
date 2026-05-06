@@ -5,6 +5,7 @@ import { ChevronLeft, GraduationCap, Mail, Share2, BookOpen, Clock, Users } from
 import { Instructor, Course } from '../types';
 
 import { useTranslation } from 'react-i18next';
+import Price from '../components/Price';
 
 export default function InstructorProfile() {
   const { t } = useTranslation();
@@ -139,7 +140,7 @@ export default function InstructorProfile() {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg">
-                      <span className="text-lg font-black text-[#1E3A8A]">{course.price.toLocaleString()} DH</span>
+                      <Price amount={course.price} className="text-lg font-black text-[#1E3A8A]" />
                     </div>
                   </div>
                   <div className="p-8">

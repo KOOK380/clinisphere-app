@@ -17,11 +17,13 @@ import {
 import { useTranslation } from "react-i18next";
 import { Event } from "../types";
 import toast from "react-hot-toast";
+import { useSettings } from "../contexts/SettingsContext";
 
 const AdminEventEdit = ({ onLogout }: { onLogout: () => void }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { settings } = useSettings();
   const token = localStorage.getItem("token");
 
   const [loading, setLoading] = useState(true);
@@ -274,7 +276,7 @@ const AdminEventEdit = ({ onLogout }: { onLogout: () => void }) => {
 
                 {eventData.type === 'paid' && (
                   <div>
-                    <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">{t('admin.common.priceDh')}</label>
+                    <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">{t('admin.common.price')} ({settings?.currencySymbol})</label>
                     <div className="relative">
                       <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input 

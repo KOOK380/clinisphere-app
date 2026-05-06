@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, MapPin, Clock, Search, Filter } from 'lucide-react';
+import { Calendar, MapPin, Clock, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Event } from '../types';
+import Price from '../components/Price';
 
 export default function Events() {
   const { t, i18n } = useTranslation();
@@ -125,7 +126,7 @@ export default function Events() {
                     />
                     <div className="absolute top-6 right-6">
                       <span className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl ${event.type === 'free' ? 'bg-green-500 text-white' : 'bg-[#3B2A8F] text-white'}`}>
-                        {event.type === 'free' ? t('events.free') : `${event.price} DH`}
+                        {event.type === 'free' ? t('events.free') : <Price amount={event.price || 0} />}
                       </span>
                     </div>
                   </div>

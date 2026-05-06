@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import AdminLayout from "../components/AdminLayout";
 import { SettingsProvider, useSettings } from "../contexts/SettingsContext";
+import Price from "../components/Price";
 import {
   Users,
   BookOpen,

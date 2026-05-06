@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, MapPin, Clock, ArrowLeft, Share2, Facebook, Instagram, ChevronRight, CheckCircle } from 'lucide-react';
 import { Event } from '../types';
+import Price from '../components/Price';
 
 export default function EventDetails({ addToCart }: { addToCart?: (item: any) => void }) {
   const { id } = useParams<{ id: string }>();
@@ -92,7 +93,7 @@ export default function EventDetails({ addToCart }: { addToCart?: (item: any) =>
                 />
                 <div className="absolute top-8 right-8">
                   <span className={`px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest shadow-2xl ${event.type === 'free' ? 'bg-green-500 text-white' : 'bg-[#3B2A8F] text-white'}`}>
-                    {event.type === 'free' ? t('events.free') : `${event.price} DH`}
+                    {event.type === 'free' ? t('events.free') : <Price amount={event.price || 0} />}
                   </span>
                 </div>
               </motion.div>
@@ -157,7 +158,7 @@ export default function EventDetails({ addToCart }: { addToCart?: (item: any) =>
                   <div className="text-center mb-10">
                     <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">{t('events.registration')}</p>
                     <h3 className="text-3xl font-black text-gray-900 italic">
-                      {event.type === 'free' ? t('events.freeAdmission') : `${event.price} DH`}
+                      {event.type === 'free' ? t('events.freeAdmission') : <Price amount={event.price || 0} />}
                     </h3>
                   </div>
 
