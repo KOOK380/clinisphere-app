@@ -22,7 +22,12 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://hkbkvnaptnhkoghuredj.supabase.co';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_plvXRp6EFpGGy6cckbklPQ_-fqQ44-A';
 
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL || 'postgresql://postgres:b263AGY5JTSRPFrh@db.hkbkvnaptnhkoghuredj.supabase.co:6543/postgres';
+let connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL || 'postgresql://postgres.hkbkvnaptnhkoghuredj:b263AGY5JTSRPFrh@aws-0-eu-west-1.pooler.supabase.com:6543/postgres';
+
+// Auto-fix for Vercel IPv6 restrictions if using the old db.xxx format
+if (connectionString && connectionString.includes('db.hkbkvnaptnhkoghuredj.supabase.co')) {
+  connectionString = connectionString.replace('postgres:', 'postgres.hkbkvnaptnhkoghuredj:').replace('@db.hkbkvnaptnhkoghuredj.supabase.co', '@aws-0-eu-west-1.pooler.supabase.com');
+}
 
 if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
   console.warn('');
