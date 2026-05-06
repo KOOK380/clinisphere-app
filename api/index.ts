@@ -22,9 +22,11 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://hkbkvnaptnhkoghuredj.supabase.co';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_plvXRp6EFpGGy6cckbklPQ_-fqQ44-A';
 
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL || 'postgresql://postgres:b263AGY5JTSRPFrh@db.hkbkvnaptnhkoghuredj.supabase.co:6543/postgres';
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:b263AGY5JTSRPFrh@db.hkbkvnaptnhkoghuredj.supabase.co:6543/postgres',
-  ssl: {
+  connectionString,
+  ssl: connectionString.includes('localhost') ? false : {
     rejectUnauthorized: false
   },
   connectionTimeoutMillis: 5000,
@@ -32,9 +34,9 @@ const pool = new Pool({
 
 // Test connection on startup
 pool.connect((err, client, release) => {
-  const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:b263AGY5JTSRPFrh@db.hkbkvnaptnhkoghuredj.supabase.co:6543/postgres';
   const url = new URL(connectionString);
   console.log(`Attempting to connect to database at ${url.host}${url.pathname}`);
+
   
   if (err) {
     console.error('DATABASE INITIAL CONNECTION ERROR:', err.message, err.stack);
@@ -259,6 +261,22 @@ async function uploadToProvider(file: any, folder: string, fileName: string) {
     return `https://storage.googleapis.com/${bucketName}/${filePath}`;
   }
 
+  else if (provider === 'local') {
+    const uploadDir = path.join(process.cwd(), 'dist', 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    const finalDir = path.join(uploadDir, folder);
+    if (!fs.existsSync(finalDir)) {
+      fs.mkdirSync(finalDir, { recursive: true });
+    }
+    
+    fs.writeFileSync(path.join(uploadDir, filePath), file.buffer);
+    
+    const baseUrl = settings.local_storage_url?.replace(/\/$/, '') || '';
+    return `${baseUrl}/uploads/${filePath}`;
+  }
+
   // Default: Supabase
   const clientUrl = settings.supabase_url || supabaseUrl;
   const clientKey = settings.supabase_anon_key || supabaseAnonKey;
@@ -336,6 +354,9 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Serve local uploads
+app.use('/uploads', express.static(path.join(process.cwd(), 'dist', 'uploads')));
 
 // Root path for the API
 app.get('/api', (req, res) => {
@@ -527,7 +548,7 @@ const checkDb = (req: any, res: any, next: any) => {
   if (!pool) {
     return res.status(503).json({ 
       error: 'Database connection not initialized', 
-      details: 'Please ensure DATABASE_URL is set in your Environment Variables.' 
+      details: 'Please ensure POSTGRES_URL or DATABASE_URL is set in your Environment Variables.' 
     });
   }
   next();

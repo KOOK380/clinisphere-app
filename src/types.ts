@@ -99,6 +99,7 @@ export interface AppSettings {
   gcs_bucket?: string;
   gcs_project_id?: string;
   gcs_credentials?: string;
+  local_storage_url?: string;
   // API details
   supabase_url?: string;
   supabase_anon_key?: string;

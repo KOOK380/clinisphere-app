@@ -1467,7 +1467,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       {t("admin.settings.activeProvider") || "Active Storage Provider"}
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                      {["supabase", "s3", "bunny", "gcs", "backblaze"].map((p) => (
+                      {["supabase", "s3", "bunny", "gcs", "backblaze", "local"].map((p) => (
                         <button
                           key={p}
                           type="button"
@@ -1534,6 +1534,27 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       </div>
                       <div className="col-span-full text-[10px] text-gray-400">
                         <p>Note: Backblaze B2 files are served via the S3 endpoint. Ensure your bucket is public or use a CDN if needed.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {settingsData.storage_provider === "local" && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-50">
+                      <div className="col-span-full font-bold text-sm text-gray-800">Local Disk Storage</div>
+                      <div className="col-span-full">
+                         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 text-sm">
+                           <strong>Warning:</strong> If you are deploying to an ephemeral serverless environment (like Vercel, Netlify, Cloud Run), local disk storage will <strong>NOT</strong> persist. Uploaded files will disappear when the container restarts. Only use this for testing, VPS hosting (DigitalOcean, AWS EC2), or AI Studio development.
+                         </div>
+                      </div>
+                      <div className="col-span-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Local Server Base URL (Optional - defaults to auto)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. https://yourdomain.com"
+                          value={settingsData.local_storage_url || ""}
+                          onChange={(e) => setSettingsData({ ...settingsData, local_storage_url: e.target.value })}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        />
                       </div>
                     </div>
                   )}
