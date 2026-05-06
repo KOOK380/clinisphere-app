@@ -36,7 +36,7 @@ export default function Services() {
             className="relative"
           >
             <img 
-              src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/1.png" 
+              src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/colposcopie-BtMONRkXhJB5AW8f.avif" 
               alt="Colposcopy Training" 
               className="rounded-3xl shadow-2xl w-full"
             />
@@ -80,7 +80,7 @@ export default function Services() {
             className="lg:order-2"
           >
             <img 
-              src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/2.png" 
+              src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/whatsapp-image-2026-03-31-at-16.20.46-p4e9LgjVGkzvmWjc.avif" 
               alt="Vaginal Surgery" 
               className="rounded-3xl shadow-2xl w-full"
             />
@@ -122,7 +122,7 @@ export default function Services() {
             viewport={{ once: true }}
           >
             <img 
-              src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/3.png" 
+              src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/whatsapp-image-2026-03-31-at-16.29.04-Twhj1cVNHiXEPNkm.avif" 
               alt="Hysteroscopy Training" 
               className="rounded-3xl shadow-2xl w-full"
             />
