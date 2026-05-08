@@ -65,7 +65,7 @@ export default function Home({ onAddToCart }: HomeProps) {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setCourses(data.filter((c: Course) => c.published).slice(0, 6)); // Optional: take only max 6 published courses
+          setCourses(data.slice(0, 6)); // API already filters by isPublished
         }
       });
     
