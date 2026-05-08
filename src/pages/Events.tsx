@@ -5,6 +5,7 @@ import { Calendar, MapPin, Clock, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Event } from '../types';
 import Price from '../components/Price';
+import { getTranslatedField } from '../utils';
 
 export default function Events() {
   const { t, i18n } = useTranslation();
@@ -30,9 +31,7 @@ export default function Events() {
 
   const filteredEvents = events.filter(event => {
     const matchesFilter = filter === 'all' || event.type === filter;
-    const title = i18n.language === 'fr' 
-      ? (event.title_fr || event.title_en || event.title) 
-      : (event.title_en || event.title_fr || event.title);
+    const title = getTranslatedField(event, 'title', i18n.language);
     const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
@@ -80,12 +79,12 @@ export default function Events() {
               />
             </div>
 
-            <div className="flex bg-gray-50 p-1.5 rounded-xl gap-1 w-full md:w-auto">
+            <div className="flex bg-gray-50 p-1.5 rounded-xl gap-1 w-full md:w-auto overflow-x-auto hide-scrollbar whitespace-nowrap">
               {(['all', 'free', 'paid'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  className={`flex-none px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                     filter === f 
                     ? 'bg-[#3B2A8F] text-white shadow-lg shadow-[#3B2A8F]/20' 
                     : 'text-gray-400 hover:text-gray-600'
@@ -120,8 +119,8 @@ export default function Events() {
                 >
                   <div className="relative h-64 overflow-hidden">
                     <img 
-                      src={event.banner} 
-                      alt={i18n.language === 'fr' ? (event.title_fr || event.title_en) : (event.title_en || event.title_fr)} 
+                      src={event.banner || undefined} 
+                      alt={getTranslatedField(event, 'title', i18n.language)} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute top-6 right-6">
@@ -136,7 +135,7 @@ export default function Events() {
                       <span>{new Date(event.eventDate).toLocaleDateString(i18n.language, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                     <h3 className="text-2xl font-black text-gray-900 mb-6 tracking-tight line-clamp-2 italic leading-tight">
-                      {i18n.language === 'fr' ? (event.title_fr || event.title_en) : (event.title_en || event.title_fr)}
+                      {getTranslatedField(event, 'title', i18n.language)}
                     </h3>
                     <div className="space-y-4 mb-10">
                        <div className="flex items-center gap-3 text-gray-500 text-[11px] font-medium italic">

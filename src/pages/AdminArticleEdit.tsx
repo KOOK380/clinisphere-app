@@ -304,7 +304,7 @@ const AdminArticleEdit = ({ onLogout }: { onLogout: () => void }) => {
                   </div>
                   {articleData.image && (
                     <div className="mt-4 relative rounded-2xl overflow-hidden border border-gray-100 aspect-video max-w-md">
-                      <img src={articleData.image} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={articleData.image || undefined} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   )}
                 </div>

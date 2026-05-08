@@ -16,7 +16,7 @@ export default function Footer() {
             <Link to={settings.logoLink || "/"} className="mb-6 block">
               {settings.footerLogo ? (
                 <img 
-                  src={settings.footerLogo} 
+                  src={settings.footerLogo || undefined} 
                   alt="Logo" 
                   className="h-20 w-auto object-contain" 
                 />

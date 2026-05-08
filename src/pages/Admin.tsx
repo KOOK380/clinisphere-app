@@ -79,6 +79,9 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     | "email_templates"
   >((tabParam as any) || "dashboard");
 
+  const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
+  const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null);
+
   useEffect(() => {
     if (tabParam) {
       setActiveTab(tabParam as any);
@@ -91,11 +94,33 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [orderClientFilter, setOrderClientFilter] = useState("");
+  const [orderDateFilter, setOrderDateFilter] = useState("");
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [articles, setArticles] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+
+  const filteredOrders = orders.filter((order) => {
+    let match = true;
+    if (orderStatusFilter !== "all" && order.status !== orderStatusFilter) {
+      match = false;
+    }
+    if (orderClientFilter) {
+      const clientStr = ((order.userName || "") + " " + (order.userEmail || "")).toLowerCase();
+      if (!clientStr.includes(orderClientFilter.toLowerCase())) {
+        match = false;
+      }
+    }
+    if (orderDateFilter) {
+      if (!new Date(order.createdAt).toISOString().startsWith(orderDateFilter)) {
+        match = false;
+      }
+    }
+    return match;
+  });
   const [sliderItems, setSliderItems] = useState<SliderItem[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<any[]>([]);
@@ -177,7 +202,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
       };
 
       await Promise.all([
-        fetchAndSet("/api/courses", setCourses),
+        fetchAndSet("/api/admin/courses", setCourses, { headers: authHeader }),
         fetchAndSet("/api/admin/orders", setOrders, { headers: authHeader }),
         fetchAndSet("/api/admin/contacts", setContacts, {
           headers: authHeader,
@@ -276,9 +301,24 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     setInstructors(Array.isArray(data) ? data : []);
   };
 
-  const handleDeleteCourse = async (id: number) => {
-    if (!window.confirm(t("admin.common.deleteConfirm"))) return;
+  const handleUpdateCourseStatus = async (id: number, isPublished: boolean) => {
     try {
+      const res = await fetch(`/api/admin/courses/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ isPublished }),
+      });
+      if (res.ok) fetchCourses();
+    } catch (error) {
+      console.error("Error updating course status:", error);
+    }
+  };
+
+  const handleDeleteCourse = async (id: number) => {
+    setConfirmDialog({
+      message: t("admin.common.deleteConfirm") || "Confirmer la suppression",
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/courses/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -287,11 +327,15 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     } catch (error) {
       console.error("Error deleting course:", error);
     }
+      }
+    });
   };
 
   const handleDeleteInstructor = async (id: number) => {
-    if (!window.confirm(t("admin.common.deleteInstructorConfirm"))) return;
-    try {
+    setConfirmDialog({
+      message: t("admin.common.deleteInstructorConfirm") || "Confirmer la suppression",
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/instructors/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -300,12 +344,41 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     } catch (error) {
       console.error("Error deleting instructor:", error);
     }
+      }
+    });
   };
 
   const fetchCourses = async () => {
-    const res = await fetch("/api/courses");
+    const res = await fetch("/api/admin/courses", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await res.json();
     setCourses(Array.isArray(data) ? data : []);
+  };
+
+  const handleBulkDeleteCourses = async () => {
+    if (selectedCourses.length === 0) return;
+    setConfirmDialog({
+      message: "Voulez-vous vraiment supprimer " + selectedCourses.length + " cours ?",
+      onConfirm: async () => {
+        try {
+      const res = await fetch("/api/courses/bulk-delete", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ ids: selectedCourses }),
+      });
+      if (res.ok) {
+        setSelectedCourses([]);
+        fetchCourses();
+      }
+    } catch (error) {
+      console.error("Error bulk deleting courses:", error);
+    }
+      }
+    });
   };
 
   const fetchEvents = async () => {
@@ -332,8 +405,10 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
   });
 
   const handleDeleteAnnouncement = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this notification?")) return;
-    try {
+    setConfirmDialog({
+      message: "Are you sure you want to delete this notification?",
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/admin/announcements/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -342,6 +417,8 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     } catch (error) {
       console.error("Error deleting announcement:", error);
     }
+      }
+    });
   };
 
   const handleCreateAnnouncement = async (e: FormEvent) => {
@@ -373,9 +450,10 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
   };
 
   const handleDeleteArticle = async (id: number) => {
-    if (!window.confirm(t('admin.articles.deleteConfirm')))
-      return;
-    try {
+    setConfirmDialog({
+      message: t('admin.articles.deleteConfirm') || "Confirmer",
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/admin/articles/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -384,6 +462,8 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     } catch (error) {
       console.error("Error deleting article:", error);
     }
+      }
+    });
   };
 
   const handleSubmitArticle = async (e: FormEvent) => {
@@ -422,10 +502,55 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     }
   };
 
-  const handleDeleteEvent = async (id: number) => {
-    if (!window.confirm(t('admin.events.deleteConfirm')))
-      return;
+  const fetchOrders = async () => {
     try {
+      const res = await fetch("/api/admin/orders", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(Array.isArray(data) ? data : []);
+      }
+    } catch (e) {
+      console.error("Error fetching orders:", e);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (id: number, status: string) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) fetchOrders();
+    } catch (error) {
+      console.error("Error updating order status:", error);
+    }
+  };
+
+  const handleDeleteOrder = async (id: number) => {
+    setConfirmDialog({
+      message: t("admin.common.deleteConfirm") || "Confirmer la suppression",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/orders/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) fetchOrders();
+        } catch (error) {
+          console.error("Error deleting order:", error);
+        }
+      }
+    });
+  };
+
+  const handleDeleteEvent = async (id: number) => {
+    setConfirmDialog({
+      message: t('admin.events.deleteConfirm') || "Confirmer",
+      onConfirm: async () => {
+        try {
       const res = await fetch(`/api/admin/events/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -434,6 +559,8 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
     } catch (error) {
       console.error("Error deleting event:", error);
     }
+      }
+    });
   };
 
   const handleLogoUpload = async (
@@ -688,9 +815,20 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
               className="space-y-6"
             >
               <div className="flex justify-between items-center">
-                <p className="text-gray-500">
-                  {courses.length} {t("admin.courses.title")}
-                </p>
+                <div className="flex items-center gap-4">
+                  <p className="text-gray-500">
+                    {courses.length} {t("admin.courses.title")}
+                  </p>
+                  {selectedCourses.length > 0 && (
+                    <button
+                      onClick={handleBulkDeleteCourses}
+                      className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg flex items-center hover:bg-red-100 transition-colors text-sm font-semibold"
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      Supprimer la sélection ({selectedCourses.length})
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={() => navigate("/admin/courses/new")}
                   className="bg-[#1E3A8A] text-white px-4 py-2 rounded-lg flex items-center hover:bg-blue-800 transition-colors"
@@ -701,11 +839,26 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                 </button>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <th className="p-4 w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedCourses.length > 0 && selectedCourses.length === courses.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCourses(courses.map(c => c.id));
+                            } else {
+                              setSelectedCourses([]);
+                            }
+                          }}
+                          className="w-4 h-4 text-blue-600 rounded bg-white border-gray-300 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </th>
                       <th className="p-4">{t("admin.sidebar.courses")}</th>
+                      <th className="p-4">{t("admin.common.statusLabel")}</th>
                       <th className="p-4">{t("admin.common.instructor")}</th>
                       <th className="p-4">{t("admin.common.price")}</th>
                       <th className="p-4">{t("admin.common.date")}</th>
@@ -721,9 +874,23 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="p-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedCourses.includes(course.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCourses([...selectedCourses, course.id]);
+                              } else {
+                                setSelectedCourses(selectedCourses.filter(id => id !== course.id));
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded bg-white border-gray-300 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </td>
+                        <td className="p-4">
                           <div className="flex items-center">
                             <img
-                              src={course.thumbnail}
+                              src={course.thumbnail || undefined}
                               alt=""
                               className="w-10 h-10 rounded-lg object-cover mr-3"
                             />
@@ -736,6 +903,17 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                               </div>
                             </div>
                           </div>
+                        </td>
+                        <td className="p-4">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              className="sr-only peer"
+                              checked={Boolean(course.isPublished && String(course.isPublished) !== "false")}
+                              onChange={(e) => handleUpdateCourseStatus(course.id, e.target.checked)}
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                          </label>
                         </td>
                         <td className="p-4 text-sm text-gray-600">
                           {(course as any).instructorName}
@@ -792,7 +970,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                 </button>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -815,7 +993,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         <td className="p-4">
                           <div className="flex items-center">
                             <img
-                              src={inst.image}
+                              src={inst.image || undefined}
                               alt=""
                               className="w-10 h-10 rounded-lg object-cover mr-3"
                             />
@@ -887,7 +1065,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         <input
                           type="text"
                           required
-                          value={instructorData.name}
+                          value={instructorData.name || ""}
                           onChange={(e) =>
                             setInstructorData({
                               ...instructorData,
@@ -904,7 +1082,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         <input
                           type="text"
                           required
-                          value={instructorData.specialty}
+                          value={instructorData.specialty || ""}
                           onChange={(e) =>
                             setInstructorData({
                               ...instructorData,
@@ -920,7 +1098,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         </label>
                         <textarea
                           required
-                          value={instructorData.bio}
+                          value={instructorData.bio || ""}
                           onChange={(e) =>
                             setInstructorData({
                               ...instructorData,
@@ -937,7 +1115,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         <input
                           type="url"
                           required
-                          value={instructorData.image}
+                          value={instructorData.image || ""}
                           onChange={(e) =>
                             setInstructorData({
                               ...instructorData,
@@ -993,7 +1171,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                 </button>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -1011,7 +1189,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         <td className="p-4">
                           <div className="flex items-center">
                             <img
-                              src={event.banner}
+                              src={event.banner || undefined}
                               alt=""
                               className="w-10 h-10 rounded-lg object-cover mr-3"
                             />
@@ -1088,7 +1266,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                 </button>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -1105,7 +1283,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         <td className="p-4">
                           <div className="flex items-center">
                             <div className="w-10 h-10 rounded-lg overflow-hidden mr-3 bg-gray-100">
-                              <img src={article.image} alt="" className="w-full h-full object-cover" />
+                              <img src={article.image || undefined} alt="" className="w-full h-full object-cover" />
                             </div>
                             <span className="font-medium text-gray-900">{article.title}</span>
                           </div>
@@ -1147,8 +1325,45 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+              className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto"
             >
+              <div className="p-4 border-b flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex gap-4 flex-wrap">
+                  <input
+                    type="text"
+                    placeholder="Filtrer par client..."
+                    value={orderClientFilter}
+                    onChange={(e) => setOrderClientFilter(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent outline-none w-64 text-sm"
+                  />
+                  <select
+                    value={orderStatusFilter}
+                    onChange={(e) => setOrderStatusFilter(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent outline-none text-sm"
+                  >
+                    <option value="all">Tous les statuts</option>
+                    <option value="pending">En attente</option>
+                    <option value="approved">Approuvé</option>
+                    <option value="paid">Payé</option>
+                    <option value="completed">Complété</option>
+                    <option value="cancelled">Annulé</option>
+                  </select>
+                  <input
+                    type="date"
+                    value={orderDateFilter}
+                    onChange={(e) => setOrderDateFilter(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+                {(orderClientFilter || orderStatusFilter !== "all" || orderDateFilter) && (
+                  <button 
+                    onClick={() => { setOrderClientFilter(""); setOrderStatusFilter("all"); setOrderDateFilter(""); }} 
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium px-4 py-2 bg-blue-50 rounded-lg"
+                  >
+                    Réinitialiser
+                  </button>
+                )}
+              </div>
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -1157,10 +1372,11 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     <th className="p-4">{t("admin.common.amount")}</th>
                     <th className="p-4">{t("admin.common.date")}</th>
                     <th className="p-4">{t("admin.common.statusLabel")}</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {orders.map((order) => {
+                  {filteredOrders.map((order) => {
                     let billing = null;
                     if (order.billing_address) {
                       try {
@@ -1189,23 +1405,42 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                           {new Date(order.createdAt).toLocaleString()}
                         </td>
                         <td className="p-4">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${order.status === 'pending' ? 'bg-yellow-50 text-yellow-600' : 'bg-green-50 text-green-600'}`}>
-                            {order.status === "pending"
-                              ? (i18n.language === 'fr' ? 'En attente' : 'Pending')
-                              : order.status === "completed"
-                              ? t("admin.common.completed")
-                              : order.status}
-                          </span>
+                          <select 
+                            value={order.status}
+                            onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value)}
+                            className={`p-1.5 text-[11px] font-bold rounded-lg uppercase tracking-wider cursor-pointer border outline-none ${
+                                order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                order.status === 'approved' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                order.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200' :
+                                order.status === 'completed' ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                                'bg-red-50 text-red-700 border-red-200'
+                            }`}
+                           >
+                            <option value="pending" className="bg-white text-gray-900">En attente</option>
+                            <option value="approved" className="bg-white text-gray-900">Approuvé</option>
+                            <option value="paid" className="bg-white text-gray-900">Payé</option>
+                            <option value="completed" className="bg-white text-gray-900">Complété</option>
+                            <option value="cancelled" className="bg-white text-gray-900">Annulé</option>
+                           </select>
                         </td>
                         <td className="p-4 text-right">
-                          {billing && (
+                          <div className="flex items-center justify-end space-x-2">
+                            {billing && (
+                              <button
+                                onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                className="text-xs px-2 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md font-medium transition-colors"
+                              >
+                                {expandedOrderId === order.id ? "Masquer Adresse" : "Voir Adresse"}
+                              </button>
+                            )}
                             <button
-                              onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
-                              className="text-xs text-blue-600 hover:underline"
+                              onClick={() => handleDeleteOrder(order.id)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors"
+                              title="Supprimer la commande"
                             >
-                              {expandedOrderId === order.id ? "Masquer Adresse" : "Voir Adresse"}
+                              <Trash2 size={16} />
                             </button>
-                          )}
+                          </div>
                         </td>
                       </tr>
                       {expandedOrderId === order.id && billing && (
@@ -1234,7 +1469,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+              className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto"
             >
               <table className="w-full">
                 <thead className="bg-gray-50">
@@ -1311,7 +1546,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     </label>
                     <input
                       type="text"
-                      value={settingsData.currencyCode}
+                      value={settingsData.currencyCode || ""}
                       onChange={(e) =>
                         setSettingsData({
                           ...settingsData,
@@ -1327,7 +1562,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     </label>
                     <input
                       type="text"
-                      value={settingsData.currencySymbol}
+                      value={settingsData.currencySymbol || ""}
                       onChange={(e) =>
                         setSettingsData({
                           ...settingsData,
@@ -1384,7 +1619,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       <div className="w-32 h-32 bg-gray-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-200 overflow-hidden group relative">
                         {settingsData.headerLogo ? (
                           <img
-                            src={settingsData.headerLogo}
+                            src={settingsData.headerLogo || undefined}
                             alt="Header Logo"
                             className="max-w-[80%] max-h-[80%] object-contain"
                           />
@@ -1414,7 +1649,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       <div className="w-32 h-32 bg-gray-50 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-200 overflow-hidden group relative">
                         {settingsData.footerLogo ? (
                           <img
-                            src={settingsData.footerLogo}
+                            src={settingsData.footerLogo || undefined}
                             alt="Footer Logo"
                             className="max-w-[80%] max-h-[80%] object-contain"
                           />
@@ -1442,7 +1677,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     </label>
                     <input
                       type="url"
-                      value={settingsData.logoLink}
+                      value={settingsData.logoLink || ""}
                       onChange={(e) =>
                         setSettingsData({
                           ...settingsData,
@@ -1856,7 +2091,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                   <div className="flex items-center space-x-3 pt-4">
                     <input
                       type="checkbox"
-                      checked={settingsData.smtp_secure || false}
+                      checked={Boolean(settingsData.smtp_secure && String(settingsData.smtp_secure) !== "false")}
                       onChange={(e) => setSettingsData({ ...settingsData, smtp_secure: e.target.checked })}
                       className="w-4 h-4 text-blue-600 rounded"
                     />
@@ -2163,7 +2398,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                   <div className="flex items-center space-x-3 md:col-span-2 mb-2">
                     <input
                       type="checkbox"
-                      checked={settingsData.floating_chat_enabled || false}
+                      checked={Boolean(settingsData.floating_chat_enabled && String(settingsData.floating_chat_enabled) !== "false")}
                       onChange={(e) => setSettingsData({ ...settingsData, floating_chat_enabled: e.target.checked })}
                       className="w-4 h-4 text-blue-600 rounded"
                     />
@@ -2201,7 +2436,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         <div className="relative w-16 h-16 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden hover:bg-gray-100 transition-colors">
                           {settingsData.floating_chat_custom_icon ? (
                             <img
-                              src={settingsData.floating_chat_custom_icon}
+                              src={settingsData.floating_chat_custom_icon || undefined}
                               alt="Custom Chat Icon"
                               className="w-full h-full object-cover"
                             />
@@ -2267,7 +2502,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                 </button>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead className="bg-gray-50/50 border-b border-gray-100">
@@ -2420,7 +2655,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       </label>
                       <input
                         type="text"
-                        value={settingsData.sliderButton1Text}
+                        value={settingsData.sliderButton1Text || ""}
                         onChange={(e) =>
                           setSettingsData({
                             ...settingsData,
@@ -2437,7 +2672,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       </label>
                       <input
                         type="text"
-                        value={settingsData.sliderButton1Link}
+                        value={settingsData.sliderButton1Link || ""}
                         onChange={(e) =>
                           setSettingsData({
                             ...settingsData,
@@ -2478,7 +2713,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       </label>
                       <input
                         type="text"
-                        value={settingsData.sliderButton2Text}
+                        value={settingsData.sliderButton2Text || ""}
                         onChange={(e) =>
                           setSettingsData({
                             ...settingsData,
@@ -2495,7 +2730,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       </label>
                       <input
                         type="text"
-                        value={settingsData.sliderButton2Link}
+                        value={settingsData.sliderButton2Link || ""}
                         onChange={(e) =>
                           setSettingsData({
                             ...settingsData,
@@ -2542,7 +2777,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       <div className="aspect-video bg-gray-100 relative">
                         {item.type === "image" ? (
                           <img
-                            src={item.url}
+                            src={item.url || undefined}
                             alt=""
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -2552,12 +2787,12 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                           />
                         ) : isExternalVideo(item.url) ? (
                           <iframe
-                            src={getEmbedUrl(item.url)}
+                            src={getEmbedUrl(item.url) || undefined}
                             className="w-full h-full object-cover border-none pointer-events-none"
                           />
                         ) : (
                           <video
-                            src={item.url}
+                            src={item.url || undefined}
                             muted
                             playsInline
                             className="w-full h-full object-cover"
@@ -2720,7 +2955,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Target Course (Optional)</label>
                     <select
-                      value={newAnnouncement.courseId}
+                      value={newAnnouncement.courseId || ""}
                       onChange={(e) => setNewAnnouncement({ ...newAnnouncement, courseId: e.target.value, eventId: "" })}
                       className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm text-gray-700"
                     >
@@ -2733,7 +2968,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                   <div>
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Target Event (Optional)</label>
                     <select
-                      value={newAnnouncement.eventId}
+                      value={newAnnouncement.eventId || ""}
                       onChange={(e) => setNewAnnouncement({ ...newAnnouncement, eventId: e.target.value, courseId: "" })}
                       className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm text-gray-700"
                     >
@@ -2748,7 +2983,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     <input
                       type="text"
                       required
-                      value={newAnnouncement.title}
+                      value={newAnnouncement.title || ""}
                       onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
                       className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm text-gray-700"
                       placeholder="e.g. Live Class Today at 8PM"
@@ -2759,7 +2994,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     <textarea
                       required
                       rows={5}
-                      value={newAnnouncement.message}
+                      value={newAnnouncement.message || ""}
                       onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
                       className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium text-sm text-gray-700 resize-none"
                       placeholder="Include meeting link, password, instructions etc."
@@ -2812,7 +3047,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         {t("admin.slider.type")}
                       </label>
                       <select
-                        value={newSlide.type}
+                        value={newSlide.type || "image"}
                         onChange={(e) =>
                           setNewSlide({
                             ...newSlide,
@@ -2831,7 +3066,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       </label>
                       <input
                         type="number"
-                        value={newSlide.order}
+                        value={newSlide.order || 0}
                         onChange={(e) =>
                           setNewSlide({
                             ...newSlide,
@@ -2850,7 +3085,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={newSlide.url}
+                        value={newSlide.url || ""}
                         onChange={(e) =>
                           setNewSlide({ ...newSlide, url: e.target.value })
                         }
@@ -2891,7 +3126,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     </label>
                     <input
                       type="text"
-                      value={newSlide.title}
+                      value={newSlide.title || ""}
                       onChange={(e) =>
                         setNewSlide({ ...newSlide, title: e.target.value })
                       }
@@ -2904,7 +3139,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       {t("admin.slider.subtitle")}
                     </label>
                     <textarea
-                      value={newSlide.subtitle}
+                      value={newSlide.subtitle || ""}
                       onChange={(e) =>
                         setNewSlide({ ...newSlide, subtitle: e.target.value })
                       }
@@ -2919,7 +3154,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       </label>
                       <input
                         type="text"
-                        value={newSlide.buttonText}
+                        value={newSlide.buttonText || ""}
                         onChange={(e) =>
                           setNewSlide({ ...newSlide, buttonText: e.target.value })
                         }
@@ -2933,7 +3168,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       </label>
                       <input
                         type="text"
-                        value={newSlide.buttonLink}
+                        value={newSlide.buttonLink || ""}
                         onChange={(e) =>
                           setNewSlide({ ...newSlide, buttonLink: e.target.value })
                         }
@@ -2977,6 +3212,33 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
           )}
         </AnimatePresence>
       </div>
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">{t("admin.common.confirm") || "Confirmation"}</h3>
+            <p className="text-gray-600 mb-6">{confirmDialog.message}</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors font-medium"
+              >
+                {t("admin.common.cancel") || "Annuler"}
+              </button>
+              <button 
+                onClick={async () => {
+                  if (confirmDialog.onConfirm) {
+                    await confirmDialog.onConfirm();
+                  }
+                  setConfirmDialog(null);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                {t("admin.common.delete") || "Supprimer"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

@@ -6,6 +6,8 @@ export interface Instructor {
   image: string;
   createdAt?: string;
   courses?: Course[];
+  studentCount?: number;
+  averageRating?: string;
 }
 
 export interface Course {
@@ -26,7 +28,7 @@ export interface Course {
   thumbnail: string;
   previewVideo?: string;
   category: string;
-  level: 'beginner' | 'intermediate' | 'advanced';
+  level: string;
   instructorId: number;
   instructorName?: string;
   instructorImage?: string;
@@ -82,7 +84,7 @@ export interface AppSettings {
   sliderButton2Link: string;
   sliderButton2Enabled: boolean;
   // Storage settings
-  storage_provider?: 'supabase' | 's3' | 'bunny' | 'gcs' | 'backblaze';
+  storage_provider?: 'supabase' | 's3' | 'bunny' | 'gcs' | 'backblaze' | 'local';
   s3_access_key?: string;
   s3_secret_key?: string;
   s3_region?: string;

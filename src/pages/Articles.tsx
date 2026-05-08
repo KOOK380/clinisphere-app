@@ -46,7 +46,7 @@ export default function Articles() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter"
+            className="text-4xl md:text-7xl font-black text-gray-900 tracking-tighter"
           >
             {t('blog.title')} <span className="text-[#3b2a8f]">{t('blog.titleAccent')}</span>
           </motion.h1>
@@ -64,7 +64,7 @@ export default function Articles() {
               <Link to={`/articles/${article.slug}`}>
                 <div className="relative h-64 overflow-hidden">
                   <img
-                    src={article.image || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800'}
+                    src={article.image || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800' || undefined}
                     alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />

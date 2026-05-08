@@ -49,7 +49,7 @@ export default function ArticleDetail() {
       {/* Hero Section */}
       <div className="relative h-[70vh] w-full overflow-hidden">
         <img
-          src={article.image || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1200'}
+          src={article.image || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1200' || undefined}
           alt={article.title}
           className="w-full h-full object-cover"
         />

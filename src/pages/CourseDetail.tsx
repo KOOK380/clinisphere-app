@@ -1,144 +1,84 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  PlayCircle,
-  CheckCircle,
-  ChevronRight,
-  ChevronDown,
-  Clock,
-  Lock,
-  ArrowLeft,
-  GraduationCap
-} from "lucide-react";
-import { Course, Module, Lesson } from "../types";
-import { useTranslation } from "react-i18next";
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Lock, PlayCircle, Clock, GraduationCap, CheckCircle, ChevronDown, ChevronRight, ShoppingCart } from 'lucide-react';
+import { Course, Lesson } from '../types';
+import { getTranslatedField } from '../utils';
+import ReviewsSection from '../components/ReviewsSection';
 
-const CourseDetail = () => {
+export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  
   const [course, setCourse] = useState<Course | null>(null);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
-  const [expandedModules, setExpandedModules] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const { t, i18n } = useTranslation();
+  const [isPurchased, setIsPurchased] = useState(false);
+  const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    // Mock Fetching course
     const fetchCourse = async () => {
       try {
-        const res = await fetch(`/api/courses/${slug}`);
-        if (res.ok) {
-          const data = await res.json();
-          setCourse(data);
-          // Set first lesson as active by default if available
-          if (data.modules?.length > 0 && data.modules[0].lessons?.length > 0) {
-            setActiveLesson(data.modules[0].lessons[0]);
-            setExpandedModules([data.modules[0].id]);
-          }
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/courses/${slug}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (!res.ok) throw new Error('Course not found');
+        const data = await res.json();
+        setCourse(data.course);
+        setIsPurchased(data.isPurchased);
+        
+        if (data.course.modules?.[0]?.lessons?.[0]) {
+          setActiveLesson(data.course.modules[0].lessons[0]);
+          setOpenModules({ [data.course.modules[0].id]: true });
         }
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching course detail:", error);
+      } catch (err) {
+        console.error(err);
+      } finally {
         setLoading(false);
       }
     };
-
     fetchCourse();
   }, [slug]);
 
-  const toggleModule = (moduleId: number) => {
-    setExpandedModules((prev) =>
-      prev.includes(moduleId)
-        ? prev.filter((id) => id !== moduleId)
-        : [...prev, moduleId]
-    );
+  const toggleModule = (id: string) => {
+    setOpenModules(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1E3A8A]"></div>
-      </div>
-    );
-  }
-
-  if (!course) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h2 className="text-2xl font-bold mb-4">{t('courseDetail.notFound')}</h2>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="text-blue-600 hover:underline"
-        >
-          {t('courseDetail.backToDashboard')}
-        </button>
-      </div>
-    );
-  }
-
-  const getEmbedUrl = (url?: string) => {
+  const getEmbedUrl = (url: string) => {
     if (!url) return '';
     try {
-      if (url.includes('youtube.com/watch?v=')) {
-        const videoId = new URL(url).searchParams.get('v');
-        return `https://www.youtube.com/embed/${videoId}`;
-      }
-      if (url.includes('youtu.be/')) {
-        const videoId = url.split('youtu.be/')[1].split('?')[0];
-        return `https://www.youtube.com/embed/${videoId}`;
-      }
-      if (url.includes('vimeo.com/')) {
+      const isVimeo = url.includes('vimeo.com');
+      if (isVimeo) {
         const parts = url.split('/');
         const id = parts[parts.length - 1];
         return `https://player.vimeo.com/video/${id}`;
       }
       return url;
     } catch {
-      return url;
+       return url;
     }
   };
 
+  if (loading) return <div className="min-h-screen flex items-center justify-center pt-20">Loading...</div>;
+  if (!course) return <div className="min-h-screen flex items-center justify-center pt-20">Course not found</div>;
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100 flex items-center justify-between px-6 py-4 fixed top-0 w-full z-10">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-sm font-black text-[#1E3A8A] tracking-tight uppercase line-clamp-1">
-              {i18n.language === 'fr' 
-                ? (course.title_fr || course.title_en || course.title)
-                : (course.title_en || course.title_fr || course.title)}
-            </h1>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-              {activeLesson ? (
-                i18n.language === 'fr' 
-                  ? (activeLesson.title_fr || activeLesson.title_en || activeLesson.title)
-                  : (activeLesson.title_en || activeLesson.title_fr || activeLesson.title)
-              ) : t('courseDetail.selectLesson')}
-            </p>
-          </div>
-        </div>
-        <div className="hidden md:flex items-center gap-6">
-           <div className="flex items-center gap-2">
-             <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-               <div className="w-1/3 h-full bg-[#1E3A8A]" />
-             </div>
-             <span className="text-[10px] font-black text-[#1E3A8A]">33% {t('courseDetail.completed')}</span>
-           </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col pt-[73px]">
+      <header className="bg-[#1E3A8A] text-white p-6 sticky top-0 z-30 flex items-center justify-between shadow-md">
+        <h1 className="text-xl font-bold truncate pr-4">{getTranslatedField(course, 'title', i18n.language)}</h1>
+        <button onClick={() => navigate('/formations')} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-bold uppercase tracking-widest shrink-0 transition-colors">
+          Back
+        </button>
       </header>
 
-      <div className="flex flex-col lg:flex-row pt-[73px] min-h-screen">
+      <div className="flex flex-col lg:flex-row flex-1">
         {/* Main Content (Video Player) */}
-        <main className="flex-grow lg:overflow-y-auto">
-          <div className="aspect-video bg-black sticky top-[73px] z-10 lg:z-0">
-             {activeLesson?.videoUrl ? (
+        <main className="flex-1 w-full min-w-0 lg:border-r border-gray-200 bg-white">
+          <div className="w-full bg-black aspect-video flex items-center justify-center overflow-hidden">
+             {activeLesson?.videoUrl && (isPurchased || activeLesson?.isFreePreview) ? (
                <iframe
                 src={getEmbedUrl(activeLesson.videoUrl)}
                 className="w-full h-full"
@@ -147,129 +87,104 @@ const CourseDetail = () => {
                 allow="autoplay; fullscreen; picture-in-picture"
               />
              ) : (
-               <div className="w-full h-full flex flex-col items-center justify-center text-white/20 gap-4">
-                 <PlayCircle size={64} />
-                 <p className="font-black uppercase tracking-[0.2em] text-xs">{t('courseDetail.noVideo')}</p>
+               <div className="relative w-full h-full flex flex-col items-center justify-center text-white gap-4 bg-gray-900 border-b border-gray-800">
+                 <Lock size={48} className="text-gray-500 mb-2" />
+                 <h3 className="font-bold text-2xl tracking-tight">Unlock Full Access</h3>
+                 <p className="text-gray-400 max-w-sm text-center px-4">Enroll in this course to immediately unlock this lesson.</p>
+                 {!isPurchased && (
+                   <button 
+                     onClick={() => navigate('/boutique')}
+                     className="mt-4 px-8 py-3 bg-[#FF6B6B] text-white rounded-full font-black text-sm uppercase tracking-widest hover:bg-[#ff5252] transition-colors"
+                   >
+                     Enroll Now
+                   </button>
+                 )}
                </div>
              )}
           </div>
 
-          <div className="p-8 lg:p-12 space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-gray-100">
-               <div className="space-y-2">
-                  <h2 className="text-3xl font-black text-gray-900 tracking-tight">
-                    {i18n.language === 'fr'
-                      ? (activeLesson?.title_fr || activeLesson?.title_en || activeLesson?.title)
-                      : (activeLesson?.title_en || activeLesson?.title_fr || activeLesson?.title)}
-                  </h2>
-                  <div className="flex items-center gap-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                    <span className="flex items-center gap-1.5">
-                      <Clock size={14} />
-                      {activeLesson?.duration || "N/A"}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-green-500">
-                      <CheckCircle size={14} />
-                      {t('courseDetail.inProgress')}
-                    </span>
-                  </div>
-               </div>
-               <button className="px-8 py-3 bg-[#1E3A8A] text-white rounded-full font-black text-xs uppercase tracking-widest shadow-xl hover:bg-blue-800 transition-all hover:-translate-y-1 active:translate-y-0">
-                 {t('courseDetail.markAsCompleted')}
-               </button>
-            </div>
+          <div className="p-8 md:p-12 space-y-8">
+             <div className="border-b border-gray-100 pb-8">
+                <h2 className="text-3xl md:text-4xl font-black text-[#1E3A8A] tracking-tight mb-4">
+                  {getTranslatedField(activeLesson, 'title', i18n.language) || getTranslatedField(course, 'title', i18n.language)}
+                </h2>
+                <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-gray-500 uppercase tracking-widest">
+                  <span className="flex items-center gap-1"><Clock size={14} /> {activeLesson?.duration || course.duration || "N/A"}</span>
+                  <span className="flex items-center gap-1"><GraduationCap size={14} /> {course.level || "All Levels"}</span>
+                </div>
+             </div>
+             
+             <div className="prose max-w-none text-gray-700">
+               <div className="whitespace-pre-wrap">{getTranslatedField(activeLesson, 'description', i18n.language)}</div>
+             </div>
 
-            {/* Lesson Description */}
-            <div className="prose prose-blue max-w-none">
-               <h3 className="text-lg font-black text-[#1E3A8A] uppercase tracking-widest mb-4">{t('courseDetail.aboutLesson')}</h3>
-               <p className="text-gray-500 text-lg leading-relaxed font-medium">
-                 {i18n.language === 'fr'
-                   ? (activeLesson?.description_fr || activeLesson?.description_en || activeLesson?.description || t('courseDetail.noDescription'))
-                   : (activeLesson?.description_en || activeLesson?.description_fr || activeLesson?.description || t('courseDetail.noDescription'))}
-               </p>
-            </div>
-
-            {/* Instructor Quick View */}
-            <div className="bg-gray-50 p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center gap-8">
-               <img src={course.instructorImage} alt={course.instructorName} className="w-20 h-20 rounded-full object-cover shadow-xl ring-4 ring-white" />
-               <div className="text-center md:text-left">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('courseDetail.yourInstructor')}</span>
-                  <p className="text-xl font-bold text-gray-900 mb-1">{course.instructorName}</p>
-                  <p className="text-sm text-gray-500 font-medium italic">{course.instructorSpecialty}</p>
-               </div>
-            </div>
+             <ReviewsSection courseId={course.id} isPurchased={isPurchased} />
           </div>
         </main>
 
-        {/* Sidebar (Resources / Curriculum) */}
-        <aside className="w-full lg:w-96 bg-gray-50 border-l border-gray-100 flex flex-col pt-0 lg:fixed lg:right-0 lg:top-[73px] lg:bottom-0">
-          <div className="p-6 border-b border-gray-100 bg-white">
-            <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+        {/* Sidebar (Curriculum) */}
+        <aside className="w-full lg:w-96 bg-gray-50 flex flex-col border-l border-gray-200 shrink-0 lg:h-[calc(100vh-140px)] lg:sticky lg:top-[140px]">
+          <div className="p-6 border-b border-gray-200 bg-white">
+            <h3 className="font-bold text-gray-900 uppercase tracking-widest text-sm flex items-center gap-2">
               <GraduationCap size={18} className="text-[#1E3A8A]" />
-              {t('courseDetail.curriculum')}
+              Curriculum
             </h3>
           </div>
-
-          <div className="flex-grow overflow-y-auto">
+          <div className="flex-grow overflow-y-auto bg-gray-50">
             {course.modules?.map((module, mIdx) => (
-              <div key={module.id} className="border-b border-gray-100 last:border-b-0">
+              <div key={module.id} className="border-b border-gray-200 last:border-b-0 bg-white">
                 <button
                   onClick={() => toggleModule(module.id)}
-                  className="w-full flex items-center justify-between p-6 hover:bg-white transition-colors group"
+                  className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors group"
                 >
                   <div className="flex items-center gap-4">
-                    <span className="text-xs font-black text-gray-200 group-hover:text-blue-200 transition-colors">
+                    <span className="text-xs font-black text-gray-300 group-hover:text-blue-300 transition-colors">
                       {String(mIdx + 1).padStart(2, '0')}
                     </span>
-                    <span className="text-xs font-black text-gray-700 uppercase tracking-widest text-left">
+                    <span className="text-sm font-bold text-gray-900 group-hover:text-[#1E3A8A] transition-colors text-left uppercase tracking-tight">
                       {module.title}
                     </span>
                   </div>
-                  {expandedModules.includes(module.id) ? (
-                    <ChevronDown size={14} className="text-gray-300" />
-                  ) : (
-                    <ChevronRight size={14} className="text-gray-300" />
-                  )}
+                  {openModules[module.id] ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
                 </button>
 
-                <AnimatePresence>
-                  {expandedModules.includes(module.id) && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden bg-white"
-                    >
-                      {module.lessons?.map((lesson, lIdx) => (
+                {openModules[module.id] && (
+                  <div className="bg-gray-50 border-t border-gray-100 p-2">
+                    {module.lessons?.map((lesson) => {
+                      const isLocked = !isPurchased && !lesson.isFreePreview;
+                      return (
                         <button
                           key={lesson.id}
                           onClick={() => setActiveLesson(lesson)}
-                          className={`w-full flex items-center gap-4 p-5 text-left transition-all ${
+                          className={`w-full flex items-center gap-4 p-4 text-left transition-all rounded-xl mb-1 ${
                             activeLesson?.id === lesson.id
-                              ? "bg-blue-50 border-r-4 border-blue-600"
-                              : "hover:bg-gray-50 opacity-60 hover:opacity-100"
+                              ? "bg-blue-100/50"
+                              : "hover:bg-gray-100"
                           }`}
                         >
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                             activeLesson?.id === lesson.id ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-300"
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                            activeLesson?.id === lesson.id ? "bg-blue-600 text-white" : "bg-white border border-gray-200 text-gray-400"
                           }`}>
-                            <PlayCircle size={14} />
+                            {isLocked ? <Lock size={12} /> : <PlayCircle size={12} />}
                           </div>
-                          <div>
-                            <span className="text-xs font-bold text-gray-900 block">
-                              {i18n.language === 'fr'
-                                ? (lesson.title_fr || lesson.title_en || lesson.title)
-                                : (lesson.title_en || lesson.title_fr || lesson.title)}
+                          <div className="flex-grow min-w-0">
+                            <span className={`text-sm font-bold block truncate ${activeLesson?.id === lesson.id ? "text-blue-900" : "text-gray-700"}`}>
+                              {getTranslatedField(lesson, 'title', i18n.language)}
                             </span>
-                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-1 mt-1">
-                              <Clock size={8} />
-                              {lesson.duration}
-                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{lesson.duration || "N/A"}</span>
+                              {lesson.isFreePreview && !isPurchased && (
+                                <span className="text-[9px] font-black text-white bg-green-500 px-2 py-0.5 rounded shadow-sm uppercase tracking-widest">
+                                  Preview
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -277,6 +192,4 @@ const CourseDetail = () => {
       </div>
     </div>
   );
-};
-
-export default CourseDetail;
+}

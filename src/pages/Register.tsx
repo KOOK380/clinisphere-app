@@ -59,16 +59,16 @@ export default function Register({ onLogin }: RegisterProps) {
         className="max-w-3xl mx-auto"
       >
         <div className="bg-white rounded-[3.5rem] shadow-3xl overflow-hidden border border-gray-100 p-2">
-          <div className="bg-[#3B2A8F] rounded-[3rem] px-12 py-20 text-center text-white relative overflow-hidden">
+          <div className="bg-[#3B2A8F] rounded-[3rem] px-6 md:px-12 py-10 md:py-20 text-center text-white relative overflow-hidden">
              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
              <span className="text-blue-300 font-black tracking-[0.3em] uppercase text-[10px] mb-6 block relative z-10">{t('auth.register.badge')}</span>
-             <h2 className="text-5xl font-black mb-4 tracking-tighter relative z-10">{t('auth.register.title')}</h2>
+             <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tighter relative z-10">{t('auth.register.title')}</h2>
              <p className="text-blue-100/60 font-medium max-w-sm mx-auto relative z-10">
                {t('auth.register.desc')}
              </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="px-16 py-20 space-y-12">
+          <form onSubmit={handleSubmit} className="px-6 md:px-16 py-10 md:py-20 space-y-12">
             {error && (
               <div className="bg-red-50 text-red-600 p-8 rounded-3xl text-sm flex items-center space-x-4 border border-red-100 font-black">
                 <AlertCircle className="w-8 h-8 flex-shrink-0" />
@@ -92,7 +92,7 @@ export default function Register({ onLogin }: RegisterProps) {
                     type={field.type}
                     name={field.name}
                     required
-                    value={(formData as any)[field.name]}
+                    value={(formData as any)[field.name] || ""}
                     onChange={handleChange}
                     className="block w-full px-8 py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#3B2A8F]/5 focus:bg-white transition-all text-[#3B2A8F] font-black placeholder:text-gray-300 placeholder:font-black placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
                     placeholder={field.placeholder}

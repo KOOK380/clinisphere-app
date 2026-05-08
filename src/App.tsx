@@ -30,6 +30,7 @@ import CourseDetail from './pages/CourseDetail';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import FloatingChat from './components/FloatingChat';
+import { Toaster } from 'react-hot-toast';
 import { Course, CartItem, User } from './types';
 
 export default function App() {
@@ -95,6 +96,7 @@ export default function App() {
 
   return (
     <Router>
+      <Toaster position="top-right" />
       <div className="flex flex-col min-h-screen bg-[#fafaf9]">
         <Routes>
           {/* Admin route handles its own layout */}

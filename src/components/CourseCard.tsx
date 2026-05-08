@@ -1,10 +1,12 @@
 import React from 'react';
 import { ShoppingCart, Star, Clock, GraduationCap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Course } from '../types';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import Price from './Price';
+
+import { getTranslatedField } from '../utils';
 
 interface CourseCardProps {
   key?: React.Key;
@@ -16,29 +18,25 @@ interface CourseCardProps {
 
 export default function CourseCard({ course, onAddToCart, ctaText, showPrice = true }: CourseCardProps) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const defaultCtaText = t('course.enroll');
   const finalCtaText = ctaText || defaultCtaText;
 
   const thumbnail = course.thumbnail || (course as any).image;
 
-  const courseTitle = i18n.language === 'fr' 
-    ? (course.title_fr || course.title_en || course.title) 
-    : (course.title_en || course.title_fr || course.title);
-    
-  const courseDescription = i18n.language === 'fr'
-    ? (course.shortDescription_fr || course.shortDescription_en || course.shortDescription || (course as any).description)
-    : (course.shortDescription_en || course.shortDescription_fr || course.shortDescription || (course as any).description);
+  const courseTitle = getTranslatedField(course, 'title', i18n.language);
+  const courseDescription = getTranslatedField(course, 'shortDescription', i18n.language) || (course as any).description;
 
   return (
     <motion.div
       whileHover={{ y: -8 }}
       className="bg-white rounded-[2.5rem] overflow-hidden shadow-2xl hover:shadow-[#3B2A8F]/10 transition-all border border-gray-100 flex flex-col h-full group"
     >
-      <div className="relative h-64 overflow-hidden">
+      <div className="relative h-64 overflow-hidden group/img">
         <img
-          src={thumbnail}
+          src={thumbnail || undefined}
           alt={courseTitle}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110"
         />
         {showPrice && (
           <div className="absolute top-6 right-6 bg-[#3B2A8F] px-5 py-2.5 rounded-full shadow-2xl backdrop-blur-md">
@@ -60,7 +58,7 @@ export default function CourseCard({ course, onAddToCart, ctaText, showPrice = t
               className="flex items-center group/inst"
             >
               {course.instructorImage ? (
-                <img src={course.instructorImage} alt={course.instructorName} className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-50 group-hover/inst:ring-blue-100 transition-all" />
+                <img src={course.instructorImage || undefined} alt={course.instructorName} className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-50 group-hover/inst:ring-blue-100 transition-all" />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-[#1E3A8A]">
                   <GraduationCap size={14} />
@@ -77,7 +75,9 @@ export default function CourseCard({ course, onAddToCart, ctaText, showPrice = t
           </div>
         </div>
         
-        <h3 className="text-xl md:text-2xl font-black text-[#3B2A8F] mb-3 leading-[1.2] tracking-tighter transition-colors">
+        <h3 
+          className="text-xl md:text-2xl font-black text-[#3B2A8F] mb-3 leading-[1.2] tracking-tighter transition-colors"
+        >
           {courseTitle}
         </h3>
         <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-2 flex-grow font-medium">

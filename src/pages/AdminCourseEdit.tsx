@@ -81,6 +81,7 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
       const url = id === "new" ? "/api/courses" : `/api/courses/${courseData.id}`;
       const method = id === "new" ? "POST" : "PUT";
@@ -216,21 +217,6 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
               {id === "new" ? t('admin.courses.newCourse') : t('admin.courses.editCourse')}
             </h1>
           </div>
-          <div className="flex gap-4">
-            <button
-              onClick={() => navigate("/admin")}
-              className="px-6 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-500 hover:bg-white transition-all"
-            >
-              {t('admin.common.cancel')}
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-2 px-8 py-2.5 bg-[#1E3A8A] text-white rounded-xl font-bold hover:bg-blue-800 transition-all shadow-lg shadow-blue-500/20"
-            >
-              <Save size={18} />
-              {t('admin.common.save')}
-            </button>
-          </div>
         </div>
 
         <form onSubmit={handleSave} className="space-y-8">
@@ -247,7 +233,6 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                 <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">{t('admin.common.title')} (FR)</label>
                 <input
                   type="text"
-                  required
                   value={courseData.title_fr || ""}
                   onChange={(e) => setCourseData({ ...courseData, title_fr: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
@@ -259,7 +244,6 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                 <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">{t('admin.courses.shortDescription')} (FR)</label>
                 <input
                   type="text"
-                  required
                   value={courseData.shortDescription_fr || ""}
                   onChange={(e) => setCourseData({ ...courseData, shortDescription_fr: e.target.value })}
                   className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium"
@@ -269,7 +253,6 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
               <div>
                 <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">{t('admin.courses.fullDescription')} (FR)</label>
                 <textarea
-                  required
                   rows={6}
                   value={courseData.fullDescription_fr || ""}
                   onChange={(e) => setCourseData({ ...courseData, fullDescription_fr: e.target.value })}
@@ -336,7 +319,7 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                 <input
                   type="number"
                   required
-                  value={courseData.price}
+                  value={courseData.price || 0}
                   onChange={(e) =>
                     setCourseData({ ...courseData, price: Number(e.target.value) })
                   }
@@ -368,7 +351,7 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                 <input
                   type="text"
                   required
-                  value={courseData.category}
+                  value={courseData.category || ""}
                   onChange={(e) =>
                     setCourseData({ ...courseData, category: e.target.value })
                   }
@@ -380,17 +363,15 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                 <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">
                   {t('admin.courses.level')}
                 </label>
-                <select
-                  value={courseData.level}
+                <input
+                  type="text"
+                  value={courseData.level || ""}
                   onChange={(e) =>
-                    setCourseData({ ...courseData, level: e.target.value as any })
+                    setCourseData({ ...courseData, level: e.target.value })
                   }
-                  className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold appearance-none"
-                >
-                  <option value="beginner">{t('admin.courses.beginner')}</option>
-                  <option value="intermediate">{t('admin.courses.intermediate')}</option>
-                  <option value="advanced">{t('admin.courses.advanced')}</option>
-                </select>
+                  placeholder={t('admin.courses.level')}
+                  className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
+                />
               </div>
 
               <div>
@@ -398,12 +379,11 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                   {t('admin.common.instructor')}
                 </label>
                 <select
-                  required
-                  value={courseData.instructorId}
+                  value={courseData.instructorId || ""}
                   onChange={(e) =>
                     setCourseData({
                       ...courseData,
-                      instructorId: Number(e.target.value),
+                      instructorId: e.target.value ? Number(e.target.value) : undefined,
                     })
                   }
                   className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold appearance-none"
@@ -423,7 +403,7 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                 </label>
                 <input
                   type="text"
-                  value={courseData.duration}
+                  value={courseData.duration || ""}
                   onChange={(e) =>
                     setCourseData({ ...courseData, duration: e.target.value })
                   }
@@ -433,14 +413,29 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
               </div>
 
               <div className="col-span-full">
+                <label className="flex items-center gap-3 cursor-pointer mt-4 mb-2 p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(courseData.isPublished && String(courseData.isPublished) !== "false")}
+                    onChange={(e) =>
+                      setCourseData({ ...courseData, isPublished: e.target.checked })
+                    }
+                    className="w-5 h-5 text-blue-600 rounded bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+                    {t('admin.articles.published') || "Publié"}
+                  </span>
+                </label>
+              </div>
+
+              <div className="col-span-full">
                 <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">
                   {t('admin.common.imageUrl')}
                 </label>
                 <div className="flex gap-4">
                   <input
                     type="url"
-                    required
-                    value={courseData.thumbnail}
+                    value={courseData.thumbnail || ""}
                     onChange={(e) =>
                       setCourseData({ ...courseData, thumbnail: e.target.value })
                     }
@@ -644,7 +639,7 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                            <div className="relative">
                              <input 
                                type="checkbox"
-                               checked={lesson.isFreePreview}
+                               checked={Boolean(lesson.isFreePreview && String(lesson.isFreePreview) !== "false")}
                                onChange={(e) => updateLesson(mIdx, lIdx, "isFreePreview", e.target.checked)}
                                className="sr-only"
                              />

@@ -45,6 +45,27 @@ export default function InstructorProfile() {
     );
   }
 
+  const parseTotalDuration = (courses: any[]) => {
+    let totalMinutes = 0;
+    courses.forEach(c => {
+      if (!c.duration) return;
+      const d = c.duration.toLowerCase();
+      if (d.includes('h')) {
+        const parts = d.split('h');
+        totalMinutes += parseFloat(parts[0]) * 60 || 0;
+        if (parts[1] && parts[1].includes('m')) {
+           totalMinutes += parseFloat(parts[1].replace(/[^0-9]/g, '')) || 0;
+        }
+      } else if (d.includes('m')) {
+        totalMinutes += parseFloat(d.replace(/[^0-9]/g, '')) || 0;
+      }
+    });
+    if (totalMinutes === 0) return '0h';
+    return totalMinutes >= 60 ? `${Math.floor(totalMinutes/60)}h ${totalMinutes % 60 ? (totalMinutes%60) + 'm' : ''}` : `${totalMinutes}m`;
+  };
+
+  const totalDurationStr = parseTotalDuration(instructor.courses || []);
+
   return (
     <div className="min-h-screen bg-gray-50/50 pt-24 pb-20">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
@@ -64,7 +85,7 @@ export default function InstructorProfile() {
               className="relative mb-8 md:mb-0"
             >
               <img 
-                src={instructor.image} 
+                src={instructor.image || undefined} 
                 alt={instructor.name} 
                 className="w-48 h-48 md:w-64 md:h-64 rounded-[32px] object-cover shadow-2xl ring-8 ring-blue-50"
               />
@@ -102,9 +123,9 @@ export default function InstructorProfile() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 pt-12 border-t border-gray-50 relative z-10">
             {[
               { icon: BookOpen, label: t('instructors.stats.courses'), value: instructor.courses?.length || 0 },
-              { icon: Users, label: t('instructors.stats.students'), value: '1.2k+' },
-              { icon: Clock, label: t('admin.common.duration'), value: '450+' },
-              { icon: Share2, label: t('instructors.stats.rating'), value: '4.9/5' }
+              { icon: Users, label: t('instructors.stats.students'), value: instructor.studentCount || 0 },
+              { icon: Clock, label: t('admin.common.duration'), value: totalDurationStr },
+              { icon: Share2, label: t('instructors.stats.rating'), value: `${instructor.averageRating || '0.0'}/5` }
             ].map((stat, i) => (
               <div key={i} className="text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start text-gray-400 mb-1">
@@ -132,10 +153,10 @@ export default function InstructorProfile() {
                 whileHover={{ y: -8 }}
                 className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-gray-100 group"
               >
-                <Link to={`/courses/${course.id}`}>
+                <div className="block">
                   <div className="relative h-56 overflow-hidden">
                     <img 
-                      src={course.thumbnail || (course as any).image} 
+                      src={course.thumbnail || (course as any).image || undefined} 
                       alt={course.title} 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
@@ -162,7 +183,7 @@ export default function InstructorProfile() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               </motion.div>
             ))}
           </div>

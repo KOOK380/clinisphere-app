@@ -20,7 +20,7 @@ export default function FloatingChat() {
       case 'custom':
       default:
         return settings.floating_chat_custom_icon ? (
-          <img src={settings.floating_chat_custom_icon} alt="Chat" className="w-full h-full object-cover rounded-full" />
+          <img src={settings.floating_chat_custom_icon || undefined} alt="Chat" className="w-full h-full object-cover rounded-full" />
         ) : (
           <MessageCircle size={32} />
         );

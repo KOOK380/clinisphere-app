@@ -255,7 +255,7 @@ const AdminEventEdit = ({ onLogout }: { onLogout: () => void }) => {
                     <input 
                       type="text" 
                       required
-                      value={eventData.location}
+                      value={eventData.location || ""}
                       onChange={e => setEventData({...eventData, location: e.target.value})}
                       className="w-full pl-12 pr-4 py-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
                     />
@@ -265,7 +265,7 @@ const AdminEventEdit = ({ onLogout }: { onLogout: () => void }) => {
                 <div>
                   <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">{t('admin.events.type')}</label>
                   <select
-                    value={eventData.type}
+                    value={eventData.type || "free"}
                     onChange={e => setEventData({...eventData, type: e.target.value as any})}
                     className="w-full px-4 py-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold appearance-none bg-white"
                   >
@@ -282,7 +282,7 @@ const AdminEventEdit = ({ onLogout }: { onLogout: () => void }) => {
                       <input 
                         type="number" 
                         required
-                        value={eventData.price}
+                        value={eventData.price || 0}
                         onChange={e => setEventData({...eventData, price: Number(e.target.value)})}
                         className="w-full pl-12 pr-4 py-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
                       />
@@ -297,7 +297,7 @@ const AdminEventEdit = ({ onLogout }: { onLogout: () => void }) => {
                       <input 
                         type="url" 
                         required
-                        value={eventData.banner}
+                        value={eventData.banner || ""}
                         onChange={e => setEventData({...eventData, banner: e.target.value})}
                         className="w-full px-4 py-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold"
                         placeholder="https://..."
@@ -317,7 +317,7 @@ const AdminEventEdit = ({ onLogout }: { onLogout: () => void }) => {
                   </div>
                   {eventData.banner && (
                     <div className="mt-4 relative rounded-2xl overflow-hidden border border-gray-100 aspect-video max-w-md">
-                      <img src={eventData.banner} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={eventData.banner || undefined} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   )}
                 </div>
@@ -326,7 +326,7 @@ const AdminEventEdit = ({ onLogout }: { onLogout: () => void }) => {
                   <label className="block text-xs font-black uppercase text-gray-400 tracking-widest mb-2">{t('admin.events.status')}</label>
                   <div className="flex items-center gap-4">
                     <select
-                      value={eventData.status}
+                      value={eventData.status || "draft"}
                       onChange={e => setEventData({...eventData, status: e.target.value as any})}
                       className="w-full px-4 py-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none font-bold appearance-none bg-white"
                     >

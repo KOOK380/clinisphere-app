@@ -41,14 +41,14 @@ export default function ForgotPassword() {
         className="max-w-xl w-full"
       >
         <div className="bg-white rounded-[3rem] shadow-3xl overflow-hidden border border-gray-100 p-2">
-          <div className="bg-[#3B2A8F] rounded-[2.5rem] px-12 py-20 text-center text-white relative overflow-hidden">
+          <div className="bg-[#3B2A8F] rounded-[2.5rem] px-6 md:px-12 py-10 md:py-20 text-center text-white relative overflow-hidden">
              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
              <span className="text-blue-300 font-black tracking-[0.3em] uppercase text-[10px] mb-6 block relative z-10">RECOVERY</span>
-             <h2 className="text-5xl font-black mb-4 tracking-tighter relative z-10">Forgot Password</h2>
+             <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tighter relative z-10">Forgot Password</h2>
              <p className="text-blue-100/60 font-medium relative z-10">Enter your email to receive a reset link</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="px-12 py-16 space-y-10">
+          <form onSubmit={handleSubmit} className="px-6 md:px-12 py-10 md:py-16 space-y-10">
             {status.message && (
               <div className={`p-6 rounded-2xl text-sm flex items-center space-x-4 border font-black ${status.type === 'error' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-600 border-green-100'}`}>
                 <AlertCircle className="w-6 h-6 flex-shrink-0" />

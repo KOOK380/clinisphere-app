@@ -123,7 +123,7 @@ export default function Dashboard({ user }: DashboardProps) {
               >
                 <div className="relative h-56 overflow-hidden">
                   <img 
-                    src={course.thumbnail} 
+                    src={course.thumbnail || undefined} 
                     alt={course.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
@@ -155,12 +155,11 @@ export default function Dashboard({ user }: DashboardProps) {
                     </div>
                   </div>
 
-                  <Link 
-                    to={`/formations/${course.slug}`}
-                    className="mt-8 w-full bg-gray-900 text-white py-4 rounded-2xl text-center text-xs font-black uppercase tracking-widest hover:bg-[#3B2A8F] transition-all shadow-lg active:scale-95"
+                  <div 
+                    className="mt-8 w-full bg-gray-900 text-white py-4 rounded-2xl text-center text-xs font-black uppercase tracking-widest hover:bg-[#3B2A8F] transition-all shadow-lg active:scale-95 cursor-pointer"
                   >
                     {t('dashboard.continue')}
-                  </Link>
+                  </div>
                 </div>
               </motion.div>
             ))}

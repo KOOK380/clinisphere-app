@@ -90,7 +90,7 @@ export default function Instructors() {
                 <div className="flex items-center mb-6">
                   <div className="relative">
                     <img 
-                      src={inst.image} 
+                      src={inst.image || undefined} 
                       alt={inst.name} 
                       className="w-24 h-24 rounded-2xl object-cover shadow-lg group-hover:rotate-3 transition-transform duration-500"
                     />

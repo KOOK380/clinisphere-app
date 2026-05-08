@@ -83,16 +83,16 @@ export default function Navbar({ cartCount, user, onLogout }: NavbarProps) {
         </div>
       </div>
 
-      <nav className="bg-white border-b border-gray-100 shadow-sm backdrop-blur-md bg-white/90">
+      <nav className="bg-white border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
           <div className="flex items-center gap-3">
             <Link to={settings.logoLink || "/"} className="flex items-center">
               {settings.headerLogo ? (
                 <img 
-                  src={settings.headerLogo} 
+                  src={settings.headerLogo || undefined} 
                   alt="Logo" 
-                  className="h-20 w-auto object-contain"
+                  className="h-12 md:h-20 w-auto object-contain"
                 />
               ) : (
                 <span className="text-xl font-bold text-[#3B2A8F] tracking-tight">Foc.Med.s Agency</span>
@@ -152,10 +152,10 @@ export default function Navbar({ cartCount, user, onLogout }: NavbarProps) {
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-4">
-            <Link to="/cart" className="relative p-2 text-gray-600">
+            <Link to="/cart" className="relative p-2 text-gray-800">
               <ShoppingCart className="w-6 h-6" />
             </Link>
-            <button onClick={() => setIsOpen(!isOpen)} className="text-gray-600">
+            <button onClick={() => setIsOpen(!isOpen)} className="text-gray-800 p-2 border border-gray-200 rounded-lg bg-gray-50 active:bg-gray-100">
               {isOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
             </button>
           </div>
@@ -169,11 +169,11 @@ export default function Navbar({ cartCount, user, onLogout }: NavbarProps) {
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 100 }}
-            className="md:hidden fixed inset-0 bg-white z-[60] flex flex-col p-8"
+            className="md:hidden fixed inset-0 bg-white shadow-2xl z-[100] flex flex-col p-8 overflow-y-auto text-black"
           >
             <div className="flex justify-between items-center mb-12">
               <span className="text-xl font-bold">Menu</span>
-              <button onClick={() => setIsOpen(false)}><X size={32} /></button>
+              <button onClick={() => setIsOpen(false)} className="p-2 bg-gray-100 rounded-lg"><X size={28} /></button>
             </div>
             <div className="flex flex-col space-y-6 text-2xl font-bold">
               <Link to="/" onClick={() => setIsOpen(false)}>{t('navbar.home')}</Link>
@@ -182,6 +182,13 @@ export default function Navbar({ cartCount, user, onLogout }: NavbarProps) {
               <Link to="/articles" onClick={() => setIsOpen(false)}>{t('navbar.articles')}</Link>
               <Link to="/services" onClick={() => setIsOpen(false)}>{t('navbar.services')}</Link>
               <Link to="/contact" onClick={() => setIsOpen(false)}>{t('navbar.contact')}</Link>
+              <button 
+                onClick={toggleLanguage}
+                className="flex w-fit items-center gap-2 p-2 mt-4 text-[#3B2A8F] transition-all font-black text-sm tracking-widest border-2 border-[#3B2A8F] rounded-xl px-6 py-3 bg-gray-50 active:scale-95"
+              >
+                <Languages className="w-5 h-5" />
+                <span>{i18n.language.startsWith('fr') ? 'EN' : 'FR'}</span>
+              </button>
             </div>
             
             <div className="flex items-center space-x-6 mt-12 py-6 border-t border-gray-100">

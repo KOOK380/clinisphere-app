@@ -1,12 +1,13 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, CheckCircle, Award, Users, BookOpen, ArrowRight, Instagram, Facebook, ChevronLeft, ChevronRight, Music, Calendar, MapPin, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from "../contexts/SettingsContext";
-import { SliderItem, Event } from '../types';
-import { getEmbedUrl, isExternalVideo, isDirectVideo } from "../utils";
+import { SliderItem, Event, Course } from '../types';
+import { getEmbedUrl, isExternalVideo, isDirectVideo, getTranslatedField } from "../utils";
 import Price from '../components/Price';
+import CourseCard from '../components/CourseCard';
 
 interface HomeProps {
   onAddToCart: (course: any) => void;
@@ -16,8 +17,38 @@ export default function Home({ onAddToCart }: HomeProps) {
   const { t, i18n } = useTranslation();
   const { settings } = useSettings();
   const [sliderItems, setSliderItems] = useState<SliderItem[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const coursesScrollRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => {
+    if (!ref.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - ref.current.offsetLeft);
+    setScrollLeft(ref.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => {
+    if (!isDragging || !ref.current) return;
+    e.preventDefault();
+    const x = e.pageX - ref.current.offsetLeft;
+    const walk = (x - startX) * 2; // Scroll-fast
+    ref.current.scrollLeft = scrollLeft - walk;
+  };
 
   useEffect(() => {
     // Fetch slider
@@ -26,6 +57,15 @@ export default function Home({ onAddToCart }: HomeProps) {
       .then(data => {
         if (Array.isArray(data)) {
           setSliderItems(data.filter(item => item.isActive));
+        }
+      });
+    
+    // Fetch courses
+    fetch('/api/courses')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCourses(data.filter((c: Course) => c.published).slice(0, 6)); // Optional: take only max 6 published courses
         }
       });
     
@@ -71,7 +111,7 @@ export default function Home({ onAddToCart }: HomeProps) {
                 isDirectVideo(sliderItems[currentSlide].url) ? (
                   isExternalVideo(sliderItems[currentSlide].url) ? (
                     <iframe
-                      src={getEmbedUrl(sliderItems[currentSlide].url)}
+                      src={getEmbedUrl(sliderItems[currentSlide].url) || undefined}
                       className="h-full w-full border-none object-cover"
                       allow="autoplay; fullscreen; picture-in-picture"
                       allowFullScreen
@@ -83,7 +123,7 @@ export default function Home({ onAddToCart }: HomeProps) {
                       loop
                       playsInline
                       className="h-full w-full object-cover"
-                      src={sliderItems[currentSlide].url}
+                      src={sliderItems[currentSlide].url || undefined}
                     />
                   )
                 ) : (
@@ -97,7 +137,7 @@ export default function Home({ onAddToCart }: HomeProps) {
                 <div className="absolute inset-0 z-10 bg-black/40" />
               </div>
 
-              <div className="relative z-20 h-full flex flex-col items-center justify-center text-center px-4 max-w-5xl mx-auto text-white">
+              <div className="relative z-20 h-full flex flex-col items-center justify-center text-center px-4 max-w-5xl mx-auto text-white pb-32 md:pb-40">
 
 
                 <h1 className="text-4xl md:text-7xl font-bold mb-12 drop-shadow-lg leading-tight">
@@ -108,7 +148,7 @@ export default function Home({ onAddToCart }: HomeProps) {
                   {sliderItems[currentSlide].subtitle}
                 </p>
 
-                <div className="flex flex-wrap justify-center gap-4">
+                <div className="hidden md:flex flex-wrap justify-center gap-4">
                   {settings.sliderButton1Enabled && (
                     <Link 
                       to={settings.sliderButton1Link || "/register"} 
@@ -149,13 +189,13 @@ export default function Home({ onAddToCart }: HomeProps) {
                 <div className="absolute inset-0 bg-black/40" />
               </div>
 
-              <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 max-w-5xl mx-auto text-white">
+              <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 max-w-5xl mx-auto text-white pb-32 md:pb-40">
 
                 <h1 className="text-5xl md:text-7xl font-bold mb-12 drop-shadow-lg leading-tight">
                   {t('home.hero.fallbackTitle').split('&')[0]}<br />
                   {t('home.hero.fallbackTitle').split('&')[1] ? '& ' + t('home.hero.fallbackTitle').split('&')[1] : ''}
                 </h1>
-                <Link to="/register" className="inline-block px-10 py-3 border-2 border-white/50 bg-white/10 backdrop-blur-sm rounded-full text-lg font-medium hover:bg-white/20 transition-all">
+                <Link to="/register" className="hidden md:inline-block px-10 py-3 border-2 border-white/50 bg-white/10 backdrop-blur-sm rounded-full text-lg font-medium hover:bg-white/20 transition-all">
                   {t('home.hero.fallbackBtn')}
                 </Link>
               </div>
@@ -176,19 +216,21 @@ export default function Home({ onAddToCart }: HomeProps) {
         )}
 
         {/* Quick Features Row Overlay */}
-        <div className="absolute bottom-10 left-0 right-0 z-20">
-          <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-white">
-            <div className="p-4 bg-black/30 backdrop-blur-md rounded-lg border border-white/10">
-              <h3 className="text-xl font-bold mb-2">{t('home.features.courses.title')}</h3>
-              <p className="text-sm text-gray-200">{t('home.features.courses.desc')}</p>
-            </div>
-            <div className="p-4 bg-black/30 backdrop-blur-md rounded-lg border border-white/10">
-              <h3 className="text-xl font-bold mb-2">{t('home.features.quiz.title')}</h3>
-              <p className="text-sm text-gray-200">{t('home.features.quiz.desc')}</p>
-            </div>
-            <div className="p-4 bg-black/30 backdrop-blur-md rounded-lg border border-white/10">
-              <h3 className="text-xl font-bold mb-2">{t('home.features.support.title')}</h3>
-              <p className="text-sm text-gray-200">{t('home.features.support.desc')}</p>
+        <div className="hidden md:block absolute bottom-6 md:bottom-10 left-0 right-0 z-20">
+          <div className="max-w-6xl mx-auto px-2 md:px-4 text-white">
+            <div className="grid grid-cols-3 gap-2 md:gap-8">
+              <div className="p-3 md:p-4 bg-black/40 backdrop-blur-md rounded-lg border border-white/10 text-center md:text-left">
+                <h3 className="text-[11px] md:text-xl font-bold mb-1 md:mb-2 leading-tight">{t('home.features.courses.title')}</h3>
+                <p className="hidden md:block text-sm text-gray-200">{t('home.features.courses.desc')}</p>
+              </div>
+              <div className="p-3 md:p-4 bg-black/40 backdrop-blur-md rounded-lg border border-white/10 text-center md:text-left">
+                <h3 className="text-[11px] md:text-xl font-bold mb-1 md:mb-2 leading-tight">{t('home.features.quiz.title')}</h3>
+                <p className="hidden md:block text-sm text-gray-200">{t('home.features.quiz.desc')}</p>
+              </div>
+              <div className="p-3 md:p-4 bg-black/40 backdrop-blur-md rounded-lg border border-white/10 text-center md:text-left">
+                <h3 className="text-[11px] md:text-xl font-bold mb-1 md:mb-2 leading-tight">{t('home.features.support.title')}</h3>
+                <p className="hidden md:block text-sm text-gray-200">{t('home.features.support.desc')}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -223,13 +265,13 @@ export default function Home({ onAddToCart }: HomeProps) {
       {/* Formations Section (Upcoming Courses) */}
       <section className="py-24 bg-[#3B2A8F] text-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-5xl font-bold mb-4 uppercase tracking-tight">{t('home.upcoming.title')}</h2>
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 uppercase tracking-tight">{t('home.upcoming.title')}</h2>
           <p className="text-blue-200 text-lg mb-20 italic">{t('home.upcoming.subtitle')}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {/* card 1 */}
             <div className="flex flex-col">
-              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[240px] uppercase text-sm">
+              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-4 md:px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[200px] md:min-w-[240px] max-w-full text-center uppercase text-sm">
                 {t('home.upcoming.colpo.tag')}
               </div>
               <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
@@ -255,7 +297,7 @@ export default function Home({ onAddToCart }: HomeProps) {
 
             {/* card 2 */}
             <div className="flex flex-col">
-              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[240px] uppercase text-sm">
+              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-4 md:px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[200px] md:min-w-[240px] max-w-full text-center uppercase text-sm">
                 {t('home.upcoming.prolapsus.tag')}
               </div>
               <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
@@ -281,7 +323,7 @@ export default function Home({ onAddToCart }: HomeProps) {
 
             {/* card 3 */}
             <div className="flex flex-col">
-              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[240px] uppercase text-sm">
+              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-4 md:px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[200px] md:min-w-[240px] max-w-full text-center uppercase text-sm">
                 {t('home.upcoming.hystero.tag')}
               </div>
               <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
@@ -308,10 +350,64 @@ export default function Home({ onAddToCart }: HomeProps) {
         </div>
       </section>
 
+      {/* Courses Section */}
+      <section className="py-24 bg-gray-50 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-start md:justify-between md:items-end mb-16 gap-6">
+            <div className="max-w-2xl">
+              <span className="text-[#3B2A8F] font-black tracking-widest uppercase text-[10px] mb-4 block">{t('formations.badge')}</span>
+              <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight italic mb-4">{t('formations.title')}</h2>
+              <p className="text-gray-400 font-medium italic">{t('formations.desc')}</p>
+            </div>
+            <Link to="/formations" className="flex items-center gap-3 text-[#3B2A8F] font-black uppercase text-[11px] tracking-widest group bg-white px-6 py-3 rounded-full shadow-sm hover:shadow-md transition-all">
+              {t('events.all')} {/* using the same 'ALL' generic button text layout translated */}
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="relative group">
+            {courses.length > 0 ? (
+              <div 
+                ref={coursesScrollRef}
+                onMouseDown={(e) => handleMouseDown(e, coursesScrollRef)}
+                onMouseLeave={handleMouseLeave}
+                onMouseUp={handleMouseUp}
+                onMouseMove={(e) => handleMouseMove(e, coursesScrollRef)}
+                className="flex gap-8 overflow-x-auto pb-12 snap-x snap-mandatory hide-scrollbar overscroll-x-contain cursor-grab active:cursor-grabbing" 
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
+                {courses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="flex-shrink-0 w-[85%] md:w-[380px] snap-center md:snap-start"
+                  >
+                    <CourseCard course={course} onAddToCart={onAddToCart} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-20 text-center bg-white rounded-[3rem] border border-dashed border-gray-200">
+                <BookOpen className="mx-auto text-gray-200 mb-6" size={48} />
+                <h3 className="text-xl font-black text-gray-400 italic mb-2 uppercase tracking-tight">{t('formations.title')}</h3>
+              </div>
+            )}
+            
+            {/* Scroll indicator for mobile */}
+            {courses.length > 1 && (
+              <div className="flex justify-center gap-2 mt-4 md:hidden">
+                {courses.map((_, i) => (
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Events Section */}
       <section className="py-24 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-end mb-16 gap-6">
+          <div className="flex flex-col md:flex-row items-start md:justify-between md:items-end mb-16 gap-6">
             <div className="max-w-2xl">
               <span className="text-[#3B2A8F] font-black tracking-widest uppercase text-[10px] mb-4 block">{t('events.upcoming')}</span>
               <h2 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight italic mb-4">{t('events.title')}</h2>
@@ -325,22 +421,27 @@ export default function Home({ onAddToCart }: HomeProps) {
 
           <div className="relative group">
             {events.length > 0 ? (
-              <div className="flex gap-8 overflow-x-auto pb-12 snap-x custom-scrollbar">
+              <div 
+                ref={scrollRef}
+                onMouseDown={(e) => handleMouseDown(e, scrollRef)}
+                onMouseLeave={handleMouseLeave}
+                onMouseUp={handleMouseUp}
+                onMouseMove={(e) => handleMouseMove(e, scrollRef)}
+                className="flex gap-8 overflow-x-auto pb-12 snap-x snap-mandatory hide-scrollbar overscroll-x-contain cursor-grab active:cursor-grabbing" 
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
                 {events.map((event, i) => (
-                  <motion.div
+                  <div
                     key={event.id}
-                    initial={{ opacity: 0, x: 50 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
-                    className="flex-shrink-0 w-[300px] md:w-[380px] snap-start group/card"
+                    className="flex-shrink-0 w-[85%] md:w-[380px] snap-center md:snap-start group/card"
                   >
                     <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-md hover:shadow-2xl transition-all overflow-hidden h-full flex flex-col">
                       <div className="relative h-56 overflow-hidden">
                         <img 
-                          src={event.banner} 
-                          alt={i18n.language === 'fr' ? (event.title_fr || event.title_en) : (event.title_en || event.title_fr)} 
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
+                          draggable={false}
+                          src={event.banner || undefined} 
+                          alt={getTranslatedField(event, 'title', i18n.language)} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110 pointer-events-none"
                         />
                         <div className="absolute top-4 right-4">
                           <span className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg ${event.type === 'free' ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'}`}>
@@ -354,7 +455,7 @@ export default function Home({ onAddToCart }: HomeProps) {
                           <span>{new Date(event.eventDate).toLocaleDateString(i18n.language, { month: 'long', day: 'numeric' })}</span>
                         </div>
                         <h3 className="text-xl font-black text-gray-900 mb-6 tracking-tight line-clamp-2 italic leading-tight">
-                          {i18n.language === 'fr' ? (event.title_fr || event.title_en || event.title) : (event.title_en || event.title_fr || event.title)}
+                          {getTranslatedField(event, 'title', i18n.language)}
                         </h3>
                         <div className="flex flex-col gap-3 mb-8">
                            <div className="flex items-center gap-3 text-gray-400 text-[10px] italic">
@@ -374,7 +475,7 @@ export default function Home({ onAddToCart }: HomeProps) {
                         </Link>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             ) : (

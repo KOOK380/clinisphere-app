@@ -28,3 +28,14 @@ export const isDirectVideo = (url: string) => {
   const cleanUrl = url.split("?")[0].toLowerCase();
   return cleanUrl.endsWith(".mp4") || cleanUrl.endsWith(".webm") || cleanUrl.endsWith(".ogv");
 };
+
+export const getTranslatedField = (item: any, field: string, lang: string) => {
+  if (!item) return '';
+  
+  if (lang === 'en') {
+    return item[`${field}_en`] || item[`${field}_fr`] || item[field] || '';
+  } else {
+    // Default to French for 'fr' or any other language
+    return item[`${field}_fr`] || item[`${field}_en`] || item[field] || '';
+  }
+};

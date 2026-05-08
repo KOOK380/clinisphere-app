@@ -458,8 +458,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Database initialization
-if (!process.env.VERCEL) {
-  const initializeDatabase = async () => {
+const initializeDatabase = async () => {
     try {
       // Check if tables exist
       const { rows } = await query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
@@ -495,47 +494,47 @@ if (!process.env.VERCEL) {
       }
 
       // Bilingual Fields Migrations
-      try {
-        // Courses
-        await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS title_en TEXT');
-        await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS title_fr TEXT');
-        await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS "shortDescription_en" TEXT');
-        await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS "shortDescription_fr" TEXT');
-        await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS "fullDescription_en" TEXT');
-        await query('ALTER TABLE courses ADD COLUMN IF NOT EXISTS "fullDescription_fr" TEXT');
-        
-        // Articles
-        await query('ALTER TABLE articles ADD COLUMN IF NOT EXISTS title_en TEXT');
-        await query('ALTER TABLE articles ADD COLUMN IF NOT EXISTS title_fr TEXT');
-        await query('ALTER TABLE articles ADD COLUMN IF NOT EXISTS excerpt_en TEXT');
-        await query('ALTER TABLE articles ADD COLUMN IF NOT EXISTS excerpt_fr TEXT');
-        await query('ALTER TABLE articles ADD COLUMN IF NOT EXISTS content_en TEXT');
-        await query('ALTER TABLE articles ADD COLUMN IF NOT EXISTS content_fr TEXT');
+      const migrations = [
+        'ALTER TABLE courses ADD COLUMN IF NOT EXISTS title_en TEXT',
+        'ALTER TABLE courses ADD COLUMN IF NOT EXISTS title_fr TEXT',
+        'ALTER TABLE courses ADD COLUMN IF NOT EXISTS "shortDescription_en" TEXT',
+        'ALTER TABLE courses ADD COLUMN IF NOT EXISTS "shortDescription_fr" TEXT',
+        'ALTER TABLE courses ADD COLUMN IF NOT EXISTS "fullDescription_en" TEXT',
+        'ALTER TABLE courses ADD COLUMN IF NOT EXISTS "fullDescription_fr" TEXT',
 
-        // Events
-        await query('ALTER TABLE events ADD COLUMN IF NOT EXISTS title_en TEXT');
-        await query('ALTER TABLE events ADD COLUMN IF NOT EXISTS title_fr TEXT');
-        await query('ALTER TABLE events ADD COLUMN IF NOT EXISTS description_en TEXT');
-        await query('ALTER TABLE events ADD COLUMN IF NOT EXISTS description_fr TEXT');
+        'ALTER TABLE articles ADD COLUMN IF NOT EXISTS title_en TEXT',
+        'ALTER TABLE articles ADD COLUMN IF NOT EXISTS title_fr TEXT',
+        'ALTER TABLE articles ADD COLUMN IF NOT EXISTS excerpt_en TEXT',
+        'ALTER TABLE articles ADD COLUMN IF NOT EXISTS excerpt_fr TEXT',
+        'ALTER TABLE articles ADD COLUMN IF NOT EXISTS content_en TEXT',
+        'ALTER TABLE articles ADD COLUMN IF NOT EXISTS content_fr TEXT',
 
-        // Modules
-        await query('ALTER TABLE modules ADD COLUMN IF NOT EXISTS title_en TEXT');
-        await query('ALTER TABLE modules ADD COLUMN IF NOT EXISTS title_fr TEXT');
+        'ALTER TABLE events ADD COLUMN IF NOT EXISTS title_en TEXT',
+        'ALTER TABLE events ADD COLUMN IF NOT EXISTS title_fr TEXT',
+        'ALTER TABLE events ADD COLUMN IF NOT EXISTS description_en TEXT',
+        'ALTER TABLE events ADD COLUMN IF NOT EXISTS description_fr TEXT',
 
-        // Lessons
-        await query('ALTER TABLE lessons ADD COLUMN IF NOT EXISTS title_en TEXT');
-        await query('ALTER TABLE lessons ADD COLUMN IF NOT EXISTS title_fr TEXT');
-        await query('ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description_en TEXT');
-        await query('ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description_fr TEXT');
+        'ALTER TABLE modules ADD COLUMN IF NOT EXISTS title_en TEXT',
+        'ALTER TABLE modules ADD COLUMN IF NOT EXISTS title_fr TEXT',
 
-        // Storage Settings
-        await query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS supabase_url TEXT');
-        await query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS supabase_anon_key TEXT');
-        
-        console.log('Bilingual fields and storage settings verified/added successfully.');
-      } catch (migrationError: any) {
-        console.warn('Migration warning:', migrationError.message);
+        'ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description TEXT',
+        'ALTER TABLE lessons ADD COLUMN IF NOT EXISTS title_en TEXT',
+        'ALTER TABLE lessons ADD COLUMN IF NOT EXISTS title_fr TEXT',
+        'ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description_en TEXT',
+        'ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description_fr TEXT',
+
+        'ALTER TABLE settings ADD COLUMN IF NOT EXISTS supabase_url TEXT',
+        'ALTER TABLE settings ADD COLUMN IF NOT EXISTS supabase_anon_key TEXT'
+      ];
+      
+      for (const m of migrations) {
+        try {
+          await query(m);
+        } catch (e: any) {
+          console.warn(`Migration failed: ${m} - ${e.message}`);
+        }
       }
+      console.log('Bilingual fields and storage settings verified/added successfully.');
       
       // Ensure admin exists
       const { rows: adminRows } = await query("SELECT * FROM users WHERE role = 'admin' LIMIT 1");
@@ -553,7 +552,6 @@ if (!process.env.VERCEL) {
     }
   };
   initializeDatabase();
-}
 
 // Auth Middleware
 const authenticateToken = async (req: any, res: any, next: any) => {
@@ -673,6 +671,22 @@ const checkDb = (req: any, res: any, next: any) => {
     }
   });
 
+  app.get('/api/admin/courses', authenticateToken, checkDb, async (req: any, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    try {
+      const { rows } = await query(`
+        SELECT c.*, i.name as "instructorName", i.image as "instructorImage"
+        FROM courses c
+        LEFT JOIN instructors i ON c."instructorId" = i.id
+        ORDER BY c."createdAt" DESC
+      `);
+      res.json(rows);
+    } catch (error: any) {
+      console.error('Error fetching admin courses:', error.message);
+      res.status(500).json({ error: 'Failed to fetch courses' });
+    }
+  });
+
   // Course Routes
   app.get('/api/courses', checkDb, async (req, res) => {
     try {
@@ -760,7 +774,10 @@ const checkDb = (req: any, res: any, next: any) => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
     try {
       const data = req.body;
-      const slug = data.slug || slugify(data.title_fr || data.title, { lower: true, strict: true });
+      let baseTitle = data.title_fr || data.title_en || data.title || 'Untitled Course';
+      let slug = data.slug || slugify(baseTitle, { lower: true, strict: true });
+      if (!slug) slug = `course-${Date.now()}`;
+      slug = `${slug}-${Math.floor(Math.random() * 10000)}`; // ensure unique
       
       const totalLessons = data.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0) || 0;
 
@@ -773,12 +790,12 @@ const checkDb = (req: any, res: any, next: any) => {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) 
         RETURNING *`,
         [
-          data.title_fr || data.title, data.title_en, data.title_fr, slug, 
-          data.shortDescription_fr || data.shortDescription, data.shortDescription_en, data.shortDescription_fr,
-          data.fullDescription_fr || data.fullDescription, data.fullDescription_en, data.fullDescription_fr, 
-          data.price, data.discountPrice,
-          data.thumbnail, data.previewVideo, data.category, data.level, data.instructorId, data.duration,
-          totalLessons, data.language, data.tags || [], data.isFeatured ? true : false, data.isPublished ? true : false
+          data.title || baseTitle, data.title_en || null, data.title_fr || null, slug, 
+          data.shortDescription || data.shortDescription_en || data.shortDescription_fr || '', data.shortDescription_en || null, data.shortDescription_fr || null,
+          data.fullDescription || data.fullDescription_en || data.fullDescription_fr || '', data.fullDescription_en || null, data.fullDescription_fr || null, 
+          data.price || 0, data.discountPrice || null,
+          data.thumbnail || '', data.previewVideo || null, data.category || '', data.level || '', data.instructorId || null, data.duration || '',
+          totalLessons, data.language || null, JSON.stringify(data.tags || []), data.isFeatured ? true : false, data.isPublished ? true : false
         ]
       );
 
@@ -789,7 +806,7 @@ const checkDb = (req: any, res: any, next: any) => {
           const mod = data.modules[mIdx];
           const { rows: modRows } = await query(
             'INSERT INTO modules ("courseId", title, title_en, title_fr, "order") VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [courseId, mod.title_fr || mod.title, mod.title_en, mod.title_fr, mIdx]
+            [courseId, mod.title_fr || mod.title_en || mod.title || 'Untitled Module', mod.title_en || null, mod.title_fr || null, mIdx]
           );
 
           const moduleId = modRows?.[0].id;
@@ -804,9 +821,9 @@ const checkDb = (req: any, res: any, next: any) => {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                 [
                   moduleId, 
-                  lesson.title_fr || lesson.title, lesson.title_en, lesson.title_fr,
-                  lesson.description_fr || lesson.description, lesson.description_en, lesson.description_fr,
-                  lesson.videoUrl, lesson.content, lesson.duration, lesson.isFreePreview ? true : false, lIdx
+                  lesson.title_fr || lesson.title_en || lesson.title || 'Untitled Lesson', lesson.title_en || null, lesson.title_fr || null,
+                  lesson.description_fr || lesson.description_en || lesson.description || '', lesson.description_en || null, lesson.description_fr || null,
+                  lesson.videoUrl || null, lesson.content || null, lesson.duration || null, lesson.isFreePreview ? true : false, lIdx
                 ]
               );
             }
@@ -816,7 +833,24 @@ const checkDb = (req: any, res: any, next: any) => {
       
       res.json(courseRows?.[0]);
     } catch (error: any) {
-      res.status(400).json({ error: 'Failed to create course: ' + error.message });
+      console.error("COURSE CREATE ERROR:", error);
+      res.status(400).json({ error: 'Failed to create course: ' + (error.message || error) + (error.detail ? ' Detail: ' + error.detail : '') });
+    }
+  });
+
+  app.put('/api/admin/courses/:id/status', authenticateToken, async (req: any, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    try {
+      const { isPublished } = req.body;
+      const { rows } = await query(
+        'UPDATE courses SET "isPublished" = $1 WHERE id = $2 RETURNING *',
+        [!!isPublished, req.params.id]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: 'Course not found' });
+      res.json(rows[0]);
+    } catch (error: any) {
+      console.error('Error updating course status:', error.message);
+      res.status(500).json({ error: 'Failed to update course status' });
     }
   });
 
@@ -824,7 +858,8 @@ const checkDb = (req: any, res: any, next: any) => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
     try {
       const data = req.body;
-      const slug = data.slug || slugify(data.title_fr || data.title, { lower: true, strict: true });
+      let baseTitle = data.title_fr || data.title_en || data.title || 'Untitled Course';
+      const slug = data.slug || slugify(baseTitle, { lower: true, strict: true });
 
       const { rows: courseRows } = await query(
         `UPDATE courses SET 
@@ -837,11 +872,11 @@ const checkDb = (req: any, res: any, next: any) => {
           "updatedAt" = CURRENT_TIMESTAMP 
         WHERE id = $23 RETURNING *`,
         [
-          data.title_fr || data.title, data.title_en, data.title_fr, slug, 
-          data.shortDescription_fr || data.shortDescription, data.shortDescription_en, data.shortDescription_fr,
-          data.fullDescription_fr || data.fullDescription, data.fullDescription_en, data.fullDescription_fr,
-          data.price, data.discountPrice, data.thumbnail, data.previewVideo, data.category, data.level, 
-          data.instructorId, data.duration, data.language, data.tags || [], 
+          baseTitle, data.title_en || null, data.title_fr || null, slug, 
+          data.shortDescription_en || data.shortDescription_fr || data.shortDescription || '', data.shortDescription_en || null, data.shortDescription_fr || null,
+          data.fullDescription_en || data.fullDescription_fr || data.fullDescription || '', data.fullDescription_en || null, data.fullDescription_fr || null,
+          data.price || 0, data.discountPrice || null, data.thumbnail || '', data.previewVideo, data.category || '', data.level || '', 
+          data.instructorId || null, data.duration || '', data.language, JSON.stringify(data.tags || []), 
           data.isFeatured ? true : false, data.isPublished ? true : false,
           req.params.id
         ]
@@ -853,7 +888,7 @@ const checkDb = (req: any, res: any, next: any) => {
           const mod = data.modules[mIdx];
           const { rows: modRows } = await query(
             'INSERT INTO modules ("courseId", title, title_en, title_fr, "order") VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [req.params.id, mod.title_fr || mod.title, mod.title_en, mod.title_fr, mIdx]
+            [req.params.id, mod.title_fr || mod.title_en || mod.title || 'Untitled Module', mod.title_en || null, mod.title_fr || null, mIdx]
           );
 
           const moduleId = modRows?.[0].id;
@@ -868,9 +903,9 @@ const checkDb = (req: any, res: any, next: any) => {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                 [
                   moduleId, 
-                  lesson.title_fr || lesson.title, lesson.title_en, lesson.title_fr,
-                  lesson.description_fr || lesson.description, lesson.description_en, lesson.description_fr,
-                  lesson.videoUrl, lesson.content, lesson.duration, lesson.isFreePreview ? true : false, lIdx
+                  lesson.title_fr || lesson.title_en || lesson.title || 'Untitled Lesson', lesson.title_en || null, lesson.title_fr || null,
+                  lesson.description_fr || lesson.description_en || lesson.description || '', lesson.description_en || null, lesson.description_fr || null,
+                  lesson.videoUrl || null, lesson.content || null, lesson.duration || null, lesson.isFreePreview ? true : false, lIdx
                 ]
               );
             }
@@ -880,21 +915,40 @@ const checkDb = (req: any, res: any, next: any) => {
 
       res.json(courseRows?.[0]);
     } catch (error: any) {
-      res.status(400).json({ error: 'Failed to update course: ' + error.message });
+      console.error("COURSE UPDATE ERROR:", error);
+      res.status(400).json({ error: 'Failed to update course: ' + (error.message || error) + (error.detail ? ' Detail: ' + error.detail : '') });
     }
   });
 
   app.delete('/api/courses/:id', authenticateToken, async (req: any, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
     try {
+      await query('UPDATE announcements SET "courseId" = NULL WHERE "courseId" = $1', [req.params.id]);
+      await query('UPDATE order_items SET "courseId" = NULL WHERE "courseId" = $1', [req.params.id]);
       await query('DELETE FROM courses WHERE id = $1', [req.params.id]);
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error);
       res.status(400).json({ error: 'Failed to delete course' });
     }
   });
 
-  // Settings Routes
+  app.post('/api/courses/bulk-delete', authenticateToken, async (req: any, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'No IDs provided' });
+      
+      const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+      await query(`UPDATE announcements SET "courseId" = NULL WHERE "courseId" IN (${placeholders})`, ids);
+      await query(`UPDATE order_items SET "courseId" = NULL WHERE "courseId" IN (${placeholders})`, ids);
+      await query(`DELETE FROM courses WHERE id IN (${placeholders})`, ids);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error(error);
+      res.status(400).json({ error: 'Failed to delete courses' });
+    }
+  });
   app.get('/api/settings', async (req, res) => {
     try {
       const { rows } = await query('SELECT * FROM settings');
@@ -1032,7 +1086,28 @@ const checkDb = (req: any, res: any, next: any) => {
       if (!instructor) return res.status(404).json({ error: 'Instructor not found' });
       
       const { rows: courses } = await query('SELECT * FROM courses WHERE "instructorId" = $1', [req.params.id]);
-      res.json({ ...(instructor as any), courses });
+      
+      const { rows: studentRows } = await query(`
+        SELECT COUNT(DISTINCT o."userId") as count 
+        FROM orders o 
+        JOIN order_items oi ON o.id = oi."orderId" 
+        JOIN courses c ON oi."courseId" = c.id 
+        WHERE c."instructorId" = $1 AND o.status = 'completed'
+      `, [req.params.id]);
+
+      const { rows: reviewRows } = await query(`
+        SELECT AVG(r.rating) as avg_rating 
+        FROM reviews r 
+        JOIN courses c ON r."courseId" = c.id 
+        WHERE c."instructorId" = $1
+      `, [req.params.id]);
+
+      res.json({ 
+        ...(instructor as any), 
+        courses,
+        studentCount: parseInt(studentRows[0]?.count || '0'),
+        averageRating: parseFloat(reviewRows[0]?.avg_rating || '5').toFixed(1)
+      });
     } catch (err) {
       res.status(500).json({ error: 'Failed to fetch instructor' });
     }
@@ -1073,16 +1148,6 @@ const checkDb = (req: any, res: any, next: any) => {
       res.json({ success: true });
     } catch (error) {
       res.status(400).json({ error: 'Failed to delete instructor' });
-    }
-  });
-
-  app.delete('/api/courses/:id', authenticateToken, async (req: any, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
-    try {
-      await query('DELETE FROM courses WHERE id = $1', [req.params.id]);
-      res.json({ success: true });
-    } catch (error) {
-      res.status(400).json({ error: 'Failed to delete course' });
     }
   });
 
@@ -1240,6 +1305,32 @@ const checkDb = (req: any, res: any, next: any) => {
     }
   });
 
+  app.get('/api/my-events', authenticateToken, checkDb, async (req: any, res) => {
+    try {
+      const { rows: orders } = await query('SELECT id FROM orders WHERE "userId" = $1 AND status = \'completed\'', [req.user.userId]);
+      if (!orders || orders.length === 0) return res.json([]);
+      
+      const orderIds = orders.map((o: any) => o.id);
+      const { rows: items } = await query(
+        `SELECT e.*
+         FROM order_items oi
+         JOIN events e ON oi."eventId" = e.id
+         WHERE oi."orderId" = ANY($1::bigint[])`,
+        [orderIds]
+      );
+
+      const eventsMap = new Map();
+      items?.forEach((e: any) => {
+        eventsMap.set(e.id, e);
+      });
+
+      res.json(Array.from(eventsMap.values()));
+    } catch (error: any) {
+      console.error('My events error:', error);
+      res.status(500).json({ error: 'Failed to fetch your events: ' + error.message });
+    }
+  });
+
   // Contact Route
   app.post('/api/contact', async (req, res) => {
     try {
@@ -1338,10 +1429,10 @@ const checkDb = (req: any, res: any, next: any) => {
           content, content_en, content_fr, image, author, category, "isPublished"
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
         [
-          title_fr || title, title_en, title_fr, slug, 
-          excerpt_fr || excerpt, excerpt_en, excerpt_fr, 
-          content_fr || content, content_en, content_fr, 
-          image, author, category, isPublished !== false
+          title || title_en || title_fr || 'Untitled Article', title_en, title_fr, slug, 
+          excerpt || excerpt_en || excerpt_fr || '', excerpt_en, excerpt_fr, 
+          content || content_en || content_fr || '', content_en, content_fr, 
+          image || '', author || 'Admin', category || 'General', isPublished !== false
         ]
       );
       res.json(rows?.[0]);
@@ -1362,10 +1453,10 @@ const checkDb = (req: any, res: any, next: any) => {
           image = $10, author = $11, category = $12, "isPublished" = $13, "updatedAt" = CURRENT_TIMESTAMP 
          WHERE id = $14 RETURNING *`,
         [
-          title_fr || title, title_en, title_fr, 
-          excerpt_fr || excerpt, excerpt_en, excerpt_fr, 
-          content_fr || content, content_en, content_fr, 
-          image, author, category, isPublished !== false, req.params.id
+          title || title_en || title_fr || 'Untitled Article', title_en, title_fr, 
+          excerpt || excerpt_en || excerpt_fr || '', excerpt_en, excerpt_fr, 
+          content || content_en || content_fr || '', content_en, content_fr, 
+          image || '', author || 'Admin', category || 'General', isPublished !== false, req.params.id
         ]
       );
       res.json(rows?.[0]);
@@ -1407,6 +1498,32 @@ const checkDb = (req: any, res: any, next: any) => {
       res.json(orders);
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to fetch orders: ' + error.message });
+    }
+  });
+
+  app.put('/api/admin/orders/:id/status', authenticateToken, async (req: any, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    try {
+      const { status } = req.body;
+      const validStatuses = ['pending', 'approved', 'paid', 'cancelled', 'completed'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+      await query('UPDATE orders SET status = $1 WHERE id = $2', [status, req.params.id]);
+      res.json({ success: true, status });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to update order status: ' + error.message });
+    }
+  });
+
+  app.delete('/api/admin/orders/:id', authenticateToken, async (req: any, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    try {
+      await query('DELETE FROM order_items WHERE "orderId" = $1', [req.params.id]);
+      await query('DELETE FROM orders WHERE id = $1', [req.params.id]);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to delete order: ' + error.message });
     }
   });
 
@@ -1524,7 +1641,13 @@ const checkDb = (req: any, res: any, next: any) => {
       const { rows } = await query(
         `INSERT INTO events (title_en, title_fr, description_en, description_fr, "eventDate", location, type, price, banner, status) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-        [b.title_en, b.title_fr, b.description_en, b.description_fr, b.eventDate, b.location, b.type, b.price, b.banner, b.status]
+        [
+          b.title_en || b.title_fr || 'Untitled Event', 
+          b.title_fr || b.title_en || 'Événement sans titre', 
+          b.description_en || b.description_fr || '', 
+          b.description_fr || b.description_en || '', 
+          b.eventDate, b.location, b.type, b.price, b.banner, b.status
+        ]
       );
       res.json(rows?.[0]);
     } catch (error) {
@@ -1542,7 +1665,13 @@ const checkDb = (req: any, res: any, next: any) => {
           "eventDate" = $5, location = $6, type = $7, price = $8, banner = $9, 
           status = $10, "updatedAt" = CURRENT_TIMESTAMP 
          WHERE id = $11 RETURNING *`,
-        [b.title_en, b.title_fr, b.description_en, b.description_fr, b.eventDate, b.location, b.type, b.price, b.banner, b.status, req.params.id]
+        [
+          b.title_en || b.title_fr || 'Untitled Event', 
+          b.title_fr || b.title_en || 'Événement sans titre', 
+          b.description_en || b.description_fr || '', 
+          b.description_fr || b.description_en || '', 
+          b.eventDate, b.location, b.type, b.price, b.banner, b.status, req.params.id
+        ]
       );
       res.json(rows?.[0]);
     } catch (error) {
@@ -1673,6 +1802,86 @@ const checkDb = (req: any, res: any, next: any) => {
     } catch (error) {
       console.error(error);
       res.status(400).json({ error: 'Failed to fetch user announcements' });
+    }
+  });
+
+  // Reviews API
+  app.get('/api/reviews', checkDb, async (req, res) => {
+    try {
+      const { courseId, eventId } = req.query;
+      let queryStr = `
+        SELECT r.*, u.name as "userName" 
+        FROM reviews r 
+        JOIN users u ON r."userId" = u.id 
+      `;
+      const params = [];
+      if (courseId) {
+        queryStr += ` WHERE r."courseId" = $1 `;
+        params.push(courseId);
+      } else if (eventId) {
+        queryStr += ` WHERE r."eventId" = $1 `;
+        params.push(eventId);
+      } else {
+        return res.json([]);
+      }
+      queryStr += ` ORDER BY r."createdAt" DESC`;
+      const { rows } = await query(queryStr, params);
+      res.json(rows);
+    } catch (error: any) {
+      console.error('Error fetching reviews:', error);
+      res.status(500).json({ error: 'Failed to fetch reviews' });
+    }
+  });
+
+  app.post('/api/reviews', authenticateToken, async (req: any, res) => {
+    try {
+      const { courseId, eventId, rating, comment } = req.body;
+      const userId = req.user.userId;
+      
+      // Check if user has bought the course/event
+      if (courseId) {
+        const { rows: uRows } = await query(`SELECT 1 FROM orders o JOIN order_items oi ON o.id = oi."orderId" WHERE oi."courseId" = $1 AND o."userId" = $2 AND o.status = 'completed'`, [courseId, userId]);
+        if (uRows.length === 0) {
+          return res.status(403).json({ error: 'You must purchase this course before leaving a review.' });
+        }
+      } else if (eventId) {
+        const { rows: uRows } = await query(`SELECT 1 FROM orders o JOIN order_items oi ON o.id = oi."orderId" WHERE oi."eventId" = $1 AND o."userId" = $2 AND o.status = 'completed'`, [eventId, userId]);
+        if (uRows.length === 0) {
+          return res.status(403).json({ error: 'You must purchase this event before leaving a review.' });
+        }
+      } else {
+        return res.status(400).json({ error: 'Missing courseId or eventId' });
+      }
+
+      // Check if already reviewed
+      let existing;
+      if (courseId) {
+        existing = await query(`SELECT 1 FROM reviews WHERE "userId" = $1 AND "courseId" = $2`, [userId, courseId]);
+      } else {
+        existing = await query(`SELECT 1 FROM reviews WHERE "userId" = $1 AND "eventId" = $2`, [userId, eventId]);
+      }
+
+      if (existing.rows.length > 0) {
+        return res.status(400).json({ error: 'You have already reviewed this item.' });
+      }
+
+      const { rows } = await query(
+        `INSERT INTO reviews ("userId", "courseId", "eventId", rating, comment) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [userId, courseId || null, eventId || null, rating, comment]
+      );
+      res.json(rows[0]);
+    } catch (error: any) {
+      console.error('Error creating review:', error);
+      res.status(500).json({ error: 'Failed to leave a review' });
+    }
+  });
+
+  app.get('/api/trigger-migrations', async (req, res) => {
+    try {
+      await query('ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description TEXT');
+      res.json({ status: 'migration successful' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

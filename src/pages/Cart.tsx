@@ -70,7 +70,7 @@ export default function Cart({ cart, removeFromCart, user }: CartProps) {
                           className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8 group border-b border-gray-50 pb-10 last:border-0 last:pb-0"
                         >
                           <div className="w-32 h-32 rounded-3xl overflow-hidden flex-shrink-0 shadow-lg border border-gray-100">
-                            <img src={item.thumbnail || (item as any).image} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                            <img src={item.thumbnail || (item as any).image || undefined} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                           </div>
                           <div className="flex-grow text-center md:text-left">
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">

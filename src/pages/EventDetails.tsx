@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Calendar, MapPin, Clock, ArrowLeft, Share2, Facebook, Instagram, ChevronRight, CheckCircle } from 'lucide-react';
 import { Event } from '../types';
 import Price from '../components/Price';
+import { getTranslatedField } from '../utils';
+import ReviewsSection from '../components/ReviewsSection';
 
 export default function EventDetails({ addToCart }: { addToCart?: (item: any) => void }) {
   const { id } = useParams<{ id: string }>();
@@ -12,13 +14,14 @@ export default function EventDetails({ addToCart }: { addToCart?: (item: any) =>
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPurchased, setIsPurchased] = useState(false);
 
   const handleBuyTicket = () => {
     if (event?.type === 'paid' && addToCart) {
       // Create a mock Course structure from Event to fit CartItem
       const eventAsCourse = {
         ...event,
-        title: i18n.language === 'fr' ? (event.title_fr || event.title_en || event.title) : (event.title_en || event.title_fr || event.title),
+        title: getTranslatedField(event, 'title', i18n.language),
         thumbnail: event.banner,
         itemType: 'event' // so we know it's an event
       };
@@ -29,20 +32,35 @@ export default function EventDetails({ addToCart }: { addToCart?: (item: any) =>
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetch(`/api/events/${id}`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchEvent = async () => {
+      try {
+        const res = await fetch(`/api/events/${id}`);
+        const data = await res.json();
         if (data && !data.error) {
           setEvent(data);
+          
+          let purchased = false;
+          const token = localStorage.getItem('token');
+          if (token) {
+            const myRes = await fetch('/api/my-events', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (myRes.ok) {
+              const myEvents = await myRes.json();
+              purchased = myEvents.some((e: Event) => e.id === data.id);
+              setIsPurchased(purchased);
+            }
+          }
         } else {
           navigate('/events');
         }
-        setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Error fetching event details:', err);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    fetchEvent();
   }, [id, navigate]);
 
   if (loading) {
@@ -55,8 +73,8 @@ export default function EventDetails({ addToCart }: { addToCart?: (item: any) =>
 
   if (!event) return null;
 
-  const eventTitle = i18n.language === 'fr' ? (event.title_fr || event.title_en || event.title) : (event.title_en || event.title_fr || event.title);
-  const eventDesc = i18n.language === 'fr' ? (event.description_fr || event.description_en || event.description) : (event.description_en || event.description_fr || event.description);
+  const eventTitle = getTranslatedField(event, 'title', i18n.language);
+  const eventDesc = getTranslatedField(event, 'description', i18n.language);
 
   return (
     <div className="min-h-screen bg-[#fafaf9]">
@@ -87,7 +105,7 @@ export default function EventDetails({ addToCart }: { addToCart?: (item: any) =>
                 className="relative rounded-[3rem] overflow-hidden shadow-2xl shadow-gray-200/50 aspect-[16/9]"
               >
                 <img 
-                  src={event.banner} 
+                  src={event.banner || undefined} 
                   alt={eventTitle} 
                   className="w-full h-full object-cover"
                 />
@@ -143,6 +161,9 @@ export default function EventDetails({ addToCart }: { addToCart?: (item: any) =>
                       {eventDesc}
                    </p>
                 </div>
+                
+                {/* Reviews Section */}
+                <ReviewsSection eventId={event.id} isPurchased={isPurchased} />
               </div>
             </div>
 
