@@ -426,6 +426,7 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
                     {t('admin.articles.published') || "Publié"}
                   </span>
                 </label>
+
               </div>
 
               <div className="col-span-full">

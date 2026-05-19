@@ -868,7 +868,7 @@ const checkDb = (req: any, res: any, next: any) => {
           "fullDescription" = $8, "fullDescription_en" = $9, "fullDescription_fr" = $10, 
           price = $11, "discountPrice" = $12, thumbnail = $13, "previewVideo" = $14, 
           category = $15, level = $16, "instructorId" = $17, duration = $18, 
-          language = $19, tags = $20, "isFeatured" = $21, "isPublished" = $22, 
+          language = $19, tags = $20, "isFeatured" = $21, "isPublished" = $22,
           "updatedAt" = CURRENT_TIMESTAMP 
         WHERE id = $23 RETURNING *`,
         [

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, CheckCircle, Award, Users, BookOpen, ArrowRight, Instagram, Facebook, ChevronLeft, ChevronRight, Music, Calendar, MapPin, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from "../contexts/SettingsContext";
@@ -14,6 +14,7 @@ interface HomeProps {
 }
 
 export default function Home({ onAddToCart }: HomeProps) {
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { settings } = useSettings();
   const [sliderItems, setSliderItems] = useState<SliderItem[]>([]);
@@ -65,7 +66,7 @@ export default function Home({ onAddToCart }: HomeProps) {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setCourses(data.slice(0, 6)); // API already filters by isPublished
+          setCourses(data.slice(0, 6));
         }
       });
     
@@ -262,93 +263,9 @@ export default function Home({ onAddToCart }: HomeProps) {
         </div>
       </section>
 
-      {/* Formations Section (Upcoming Courses) */}
-      <section className="py-24 bg-[#3B2A8F] text-white">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 uppercase tracking-tight">{t('home.upcoming.title')}</h2>
-          <p className="text-blue-200 text-lg mb-20 italic">{t('home.upcoming.subtitle')}</p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {/* card 1 */}
-            <div className="flex flex-col">
-              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-4 md:px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[200px] md:min-w-[240px] max-w-full text-center uppercase text-sm">
-                {t('home.upcoming.colpo.tag')}
-              </div>
-              <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
-                <div className="h-[300px] relative">
-                  <img src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/1.png" alt="Colposcopie" className="w-full h-full object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm py-2 px-4 shadow-inner">
-                    <p className="text-[#3B2A8F] font-bold text-sm">Professeur Nawel MERROUCHE</p>
-                  </div>
-                </div>
-                <div className="p-8 flex-grow text-left">
-                  <h3 className="text-[#3B2A8F] text-2xl font-bold mb-6 leading-tight uppercase">{t('home.upcoming.colpo.title')}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-8">
-                    {t('home.upcoming.colpo.desc')}
-                  </p>
-                  <div className="mt-auto flex justify-end">
-                    <Link to="/formations" className="px-6 py-2 bg-gray-50 border border-gray-100 rounded-full text-[#3B2A8F] font-bold text-xs hover:bg-gray-100 italic">
-                      {t('home.upcoming.details')}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* card 2 */}
-            <div className="flex flex-col">
-              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-4 md:px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[200px] md:min-w-[240px] max-w-full text-center uppercase text-sm">
-                {t('home.upcoming.prolapsus.tag')}
-              </div>
-              <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
-                <div className="h-[300px] relative">
-                  <img src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/2.png" alt="Prolapsus" className="w-full h-full object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm py-2 px-4 shadow-inner">
-                    <p className="text-[#3B2A8F] font-bold text-sm">Professeur Hervé FERNANDEZ.</p>
-                  </div>
-                </div>
-                <div className="p-8 flex-grow text-left">
-                  <h3 className="text-[#3B2A8F] text-xl font-bold mb-6 leading-tight uppercase">{t('home.upcoming.prolapsus.title')}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-8">
-                    {t('home.upcoming.prolapsus.desc')}
-                  </p>
-                  <div className="mt-auto flex justify-end">
-                    <Link to="/formations" className="px-6 py-2 bg-gray-50 border border-gray-100 rounded-full text-[#3B2A8F] font-bold text-xs hover:bg-gray-100 italic">
-                      {t('home.upcoming.details')}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* card 3 */}
-            <div className="flex flex-col">
-              <div className="bg-[#F9E5D9] text-[#3B2A8F] font-bold py-2 px-4 md:px-10 rounded-t-3xl border-b-2 border-[#3B2A8F] self-center -mb-px relative z-10 min-w-[200px] md:min-w-[240px] max-w-full text-center uppercase text-sm">
-                {t('home.upcoming.hystero.tag')}
-              </div>
-              <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full text-black">
-                <div className="h-[300px] relative">
-                  <img src="https://hkbkvnaptnhkoghuredj.supabase.co/storage/v1/object/public/media/3.png" alt="Hysteroscopie" className="w-full h-full object-cover" />
-                  <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm py-2 px-4 shadow-inner">
-                    <p className="text-[#3B2A8F] font-bold text-sm">Professeur Michel COSSON</p>
-                  </div>
-                </div>
-                <div className="p-8 flex-grow text-left">
-                  <h3 className="text-[#3B2A8F] text-2xl font-bold mb-6 leading-tight uppercase">{t('home.upcoming.hystero.title')}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-8">
-                    {t('home.upcoming.hystero.desc')}
-                  </p>
-                  <div className="mt-auto flex justify-end">
-                    <Link to="/formations" className="px-6 py-2 bg-gray-50 border border-gray-100 rounded-full text-[#3B2A8F] font-bold text-xs hover:bg-gray-100 italic">
-                      {t('home.upcoming.details')}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Courses Section */}
       <section className="py-24 bg-gray-50 overflow-hidden">
@@ -360,7 +277,7 @@ export default function Home({ onAddToCart }: HomeProps) {
               <p className="text-gray-400 font-medium italic">{t('formations.desc')}</p>
             </div>
             <Link to="/formations" className="flex items-center gap-3 text-[#3B2A8F] font-black uppercase text-[11px] tracking-widest group bg-white px-6 py-3 rounded-full shadow-sm hover:shadow-md transition-all">
-              {t('events.all')} {/* using the same 'ALL' generic button text layout translated */}
+              {t('navbar.formations')}
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -381,7 +298,11 @@ export default function Home({ onAddToCart }: HomeProps) {
                     key={course.id}
                     className="flex-shrink-0 w-[85%] md:w-[380px] snap-center md:snap-start"
                   >
-                    <CourseCard course={course} onAddToCart={onAddToCart} />
+                    <CourseCard 
+                      course={course} 
+                      onAddToCart={() => navigate(`/formations/${course.id}`)} 
+                      ctaText={t('events.viewDetails')} 
+                    />
                   </div>
                 ))}
               </div>

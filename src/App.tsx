@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -32,6 +32,16 @@ import Privacy from './pages/Privacy';
 import FloatingChat from './components/FloatingChat';
 import { Toaster } from 'react-hot-toast';
 import { Course, CartItem, User } from './types';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -68,9 +78,8 @@ export default function App() {
       const existing = prev.find((item) => item.id === course.id);
       let newCart;
       if (existing) {
-        newCart = prev.map((item) =>
-          item.id === course.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
+        // Course already in cart, do not increase quantity, keep as is
+        newCart = prev;
       } else {
         newCart = [...prev, { ...course, quantity: 1 }];
       }
@@ -96,6 +105,7 @@ export default function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <Toaster position="top-right" />
       <div className="flex flex-col min-h-screen bg-[#fafaf9]">
         <Routes>
@@ -151,7 +161,7 @@ export default function App() {
                   <Routes>
                     <Route path="/" element={<Home onAddToCart={addToCart} />} />
                     <Route path="/formations" element={<Formations onAddToCart={addToCart} />} />
-                    <Route path="/formations/:slug" element={<CourseDetail />} />
+                    <Route path="/formations/:slug" element={<CourseDetail onAddToCart={addToCart} />} />
                     <Route 
                       path="/boutique" 
                       element={

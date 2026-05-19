@@ -32,7 +32,10 @@ export default function CourseCard({ course, onAddToCart, ctaText, showPrice = t
       whileHover={{ y: -8 }}
       className="bg-white rounded-[2.5rem] overflow-hidden shadow-2xl hover:shadow-[#3B2A8F]/10 transition-all border border-gray-100 flex flex-col h-full group"
     >
-      <div className="relative h-64 overflow-hidden group/img">
+      <div 
+        className="relative h-64 overflow-hidden group/img cursor-pointer"
+        onClick={() => navigate(`/formations/${course.id}`)}
+      >
         <img
           src={thumbnail || undefined}
           alt={courseTitle}
@@ -55,7 +58,7 @@ export default function CourseCard({ course, onAddToCart, ctaText, showPrice = t
           {course.instructorId && (
             <Link 
               to={`/instructors/${course.instructorId}`}
-              className="flex items-center group/inst"
+              className="flex items-center group/inst z-10 relative"
             >
               {course.instructorImage ? (
                 <img src={course.instructorImage || undefined} alt={course.instructorName} className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-50 group-hover/inst:ring-blue-100 transition-all" />
@@ -76,7 +79,8 @@ export default function CourseCard({ course, onAddToCart, ctaText, showPrice = t
         </div>
         
         <h3 
-          className="text-xl md:text-2xl font-black text-[#3B2A8F] mb-3 leading-[1.2] tracking-tighter transition-colors"
+          className="text-xl md:text-2xl font-black text-[#3B2A8F] mb-3 leading-[1.2] tracking-tighter transition-colors cursor-pointer hover:text-blue-600"
+          onClick={() => navigate(`/formations/${course.id}`)}
         >
           {courseTitle}
         </h3>

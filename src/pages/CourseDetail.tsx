@@ -3,13 +3,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Lock, PlayCircle, Clock, GraduationCap, CheckCircle, ChevronDown, ChevronRight, ShoppingCart } from 'lucide-react';
 import { Course, Lesson } from '../types';
+import { useSettings } from '../contexts/SettingsContext';
 import { getTranslatedField } from '../utils';
 import ReviewsSection from '../components/ReviewsSection';
+import Price from '../components/Price';
 
-export default function CourseDetail() {
+interface CourseDetailProps {
+  onAddToCart?: (course: Course) => void;
+}
+
+export default function CourseDetail({ onAddToCart }: CourseDetailProps) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { settings } = useSettings();
   
   const [course, setCourse] = useState<Course | null>(null);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -27,12 +34,13 @@ export default function CourseDetail() {
         });
         if (!res.ok) throw new Error('Course not found');
         const data = await res.json();
-        setCourse(data.course);
-        setIsPurchased(data.isPurchased);
+        const courseData = data.course || data;
+        setCourse(courseData);
+        setIsPurchased(data.isPurchased || false);
         
-        if (data.course.modules?.[0]?.lessons?.[0]) {
-          setActiveLesson(data.course.modules[0].lessons[0]);
-          setOpenModules({ [data.course.modules[0].id]: true });
+        if (courseData.modules?.[0]?.lessons?.[0]) {
+          setActiveLesson(courseData.modules[0].lessons[0]);
+          setOpenModules({ [courseData.modules[0].id]: true });
         }
       } catch (err) {
         console.error(err);
@@ -64,6 +72,118 @@ export default function CourseDetail() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center pt-20">Loading...</div>;
   if (!course) return <div className="min-h-screen flex items-center justify-center pt-20">Course not found</div>;
+
+  const handleAddToCart = () => {
+    if (onAddToCart && course) {
+      onAddToCart(course);
+      navigate('/cart');
+    }
+  };
+
+  if (!isPurchased) {
+    const whatsappBaseUrl = settings?.floating_chat_url || (settings?.contact_phone ? `https://wa.me/${settings.contact_phone.replace(/\D/g, '')}` : "https://wa.me/");
+    const msg = encodeURIComponent(`Hello, I'm interested in the course: ${getTranslatedField(course, 'title', 'en')}`);
+    const finalWhatsappLink = whatsappBaseUrl.includes('?') ? `${whatsappBaseUrl}&text=${msg}` : `${whatsappBaseUrl}?text=${msg}`;
+
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col pt-[73px]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-24 grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-24">
+          {/* Left Column - Image */}
+          <div className="w-full relative h-[600px]">
+            <img 
+              src={course.thumbnail} 
+              alt={getTranslatedField(course, 'title', i18n.language)}
+              className="w-full h-full object-cover rounded-[3rem] shadow-xl"
+            />
+          </div>
+          
+          {/* Right Column - Details */}
+          <div className="w-full flex flex-col justify-center">
+
+            
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-gray-900 mb-6 tracking-tight italic leading-none">
+              {getTranslatedField(course, 'title', i18n.language)}
+            </h1>
+            
+            {course.instructorName && (
+              <div className="flex items-center gap-4 mb-8">
+                {course.instructorImage && (
+                  <img src={course.instructorImage} alt={course.instructorName} className="w-12 h-12 rounded-full object-cover" />
+                )}
+                <div>
+                  <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest">Instructor</span>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Dr. {course.instructorName}
+                  </h2>
+                </div>
+              </div>
+            )}
+            
+            <div className="text-2xl font-black text-[#1E3A8A] mb-8">
+              <Price amount={course.price} />
+            </div>
+
+            <div className="flex gap-4 text-xs font-bold text-gray-500 uppercase tracking-widest mb-10 pb-8 border-b border-gray-200 flex-wrap">
+              {course.category && <span>Category: {course.category}</span>}
+              {course.level && <span>• Level: {course.level}</span>}
+              {course.duration && <span>• Duration: {course.duration}</span>}
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-16">
+              <button 
+                onClick={handleAddToCart}
+                className="bg-black text-white px-8 py-4 rounded-full font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors flex-1 shadow-md hover:shadow-xl text-center"
+              >
+                Add to cart
+              </button>
+              <button 
+                onClick={() => window.open(finalWhatsappLink, '_blank')}
+                className="bg-[#25D366] text-white px-8 py-4 rounded-full font-bold uppercase tracking-wide hover:bg-[#1DA851] transition-colors flex-1 shadow-md hover:shadow-xl text-center flex items-center justify-center gap-2"
+              >
+                Chat on WhatsApp
+              </button>
+            </div>
+
+            <div className="prose prose-lg max-w-none text-gray-600 leading-relaxed font-medium mb-12">
+               <div className="whitespace-pre-wrap">{getTranslatedField(course, 'fullDescription', i18n.language) || getTranslatedField(course, 'description', i18n.language) || getTranslatedField(course, 'shortDescription', i18n.language)}</div>
+            </div>
+
+            {course.modules && course.modules.length > 0 && (
+              <div className="mt-8 border-t border-gray-200 pt-12">
+                <h3 className="text-2xl font-black text-gray-900 mb-8 italic tracking-tight text-[#1E3A8A]">Curriculum</h3>
+                <div className="space-y-6">
+                  {course.modules.map((mod, idx) => (
+                    <div key={idx} className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                      <h4 className="font-bold text-lg text-gray-900 mb-4">{getTranslatedField(mod, 'title', i18n.language)}</h4>
+                      {mod.lessons && mod.lessons.map((lesson, lIdx) => (
+                        <div key={lIdx} className="flex items-start gap-4 text-gray-600 mb-4 last:mb-0">
+                          <span className="w-2 h-2 rounded-full bg-[#3B2A8F] shrink-0 mt-2" />
+                          <div>
+                            <span className="font-medium block text-gray-800">{getTranslatedField(lesson, 'title', i18n.language)}</span>
+                            {lesson.description && <span className="text-sm text-gray-500 block mt-1">{lesson.description}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {course.tags && Array.isArray(course.tags) && course.tags.length > 0 && (
+              <div className="mt-12 flex flex-wrap gap-2">
+                {course.tags.map((tag: string, i: number) => (
+                  <span key={i} className="text-xs font-bold text-[#3B2A8F] bg-[#3B2A8F]/10 px-4 py-2 rounded-full uppercase tracking-widest">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pt-[73px]">

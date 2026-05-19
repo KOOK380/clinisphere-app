@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Course } from '../types';
 import CourseCard from '../components/CourseCard';
 import { motion } from 'motion/react';
@@ -72,9 +73,9 @@ export default function Formations({ onAddToCart }: FormationsProps) {
               {t('formations.custom.desc')}
             </p>
           </div>
-          <button className="relative z-10 bg-white text-[#3B2A8F] px-12 py-5 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl">
+          <Link to="/contact" className="relative z-10 bg-white text-[#3B2A8F] px-12 py-5 rounded-full font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl block w-max mt-4 md:mt-0 text-center">
             {t('formations.custom.button')}
-          </button>
+          </Link>
         </motion.div>
       </div>
     </div>
