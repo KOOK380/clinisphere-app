@@ -22,6 +22,7 @@ export default function CourseDetail({ onAddToCart }: CourseDetailProps) {
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPurchased, setIsPurchased] = useState(false);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function CourseDetail({ onAddToCart }: CourseDetailProps) {
         const courseData = data.course || data;
         setCourse(courseData);
         setIsPurchased(data.isPurchased || false);
+        setOrderStatus(data.orderStatus || null);
         
         if (courseData.modules?.[0]?.lessons?.[0]) {
           setActiveLesson(courseData.modules[0].lessons[0]);
@@ -61,8 +63,28 @@ export default function CourseDetail({ onAddToCart }: CourseDetailProps) {
       const isVimeo = url.includes('vimeo.com');
       if (isVimeo) {
         const parts = url.split('/');
-        const id = parts[parts.length - 1];
+        const id = parts[parts.length - 1].split('?')[0];
         return `https://player.vimeo.com/video/${id}`;
+      }
+      const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+      if (isYoutube) {
+        let videoId = '';
+        if (url.includes('youtu.be/')) {
+          videoId = url.split('youtu.be/')[1]?.split('?')[0];
+        } else if (url.includes('youtube.com/watch')) {
+          // Sometimes watch?v=... has other query params
+          const urlObj = new URL(url);
+          videoId = urlObj.searchParams.get('v') || '';
+        } else if (url.includes('youtube.com/embed/')) {
+          return url;
+        } else if (url.includes('youtube.com/shorts/')) {
+          videoId = url.split('youtube.com/shorts/')[1]?.split('?')[0];
+        } else if (url.includes('youtube.com/live/')) {
+          videoId = url.split('youtube.com/live/')[1]?.split('?')[0];
+        }
+        if (videoId) {
+          return `https://www.youtube.com/embed/${videoId}`;
+        }
       }
       return url;
     } catch {
@@ -131,10 +153,11 @@ export default function CourseDetail({ onAddToCart }: CourseDetailProps) {
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-16">
               <button 
-                onClick={handleAddToCart}
-                className="bg-black text-white px-8 py-4 rounded-full font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors flex-1 shadow-md hover:shadow-xl text-center"
+                onClick={orderStatus === 'pending' ? undefined : handleAddToCart}
+                disabled={orderStatus === 'pending'}
+                className={`${orderStatus === 'pending' ? 'bg-orange-500 cursor-not-allowed' : 'bg-black hover:bg-gray-800'} text-white px-8 py-4 rounded-full font-bold uppercase tracking-wide transition-colors flex-1 shadow-md hover:shadow-xl text-center`}
               >
-                Add to cart
+                {orderStatus === 'pending' ? 'Order Pending Approval' : 'Add to cart'}
               </button>
               <button 
                 onClick={() => window.open(finalWhatsappLink, '_blank')}
@@ -206,19 +229,23 @@ export default function CourseDetail({ onAddToCart }: CourseDetailProps) {
                 frameBorder="0"
                 allow="autoplay; fullscreen; picture-in-picture"
               />
+             ) : isPurchased ? (
+               <div className="relative w-full h-full flex flex-col items-center justify-center text-white gap-4 bg-gray-900 border-b border-gray-800">
+                 <Lock size={48} className="text-gray-500 mb-2" />
+                 <h3 className="font-bold text-2xl tracking-tight">No Video Available</h3>
+                 <p className="text-gray-400 max-w-sm text-center px-4">There is no video format provided for this specific lesson currently.</p>
+               </div>
              ) : (
                <div className="relative w-full h-full flex flex-col items-center justify-center text-white gap-4 bg-gray-900 border-b border-gray-800">
                  <Lock size={48} className="text-gray-500 mb-2" />
                  <h3 className="font-bold text-2xl tracking-tight">Unlock Full Access</h3>
                  <p className="text-gray-400 max-w-sm text-center px-4">Enroll in this course to immediately unlock this lesson.</p>
-                 {!isPurchased && (
-                   <button 
-                     onClick={() => navigate('/boutique')}
-                     className="mt-4 px-8 py-3 bg-[#FF6B6B] text-white rounded-full font-black text-sm uppercase tracking-widest hover:bg-[#ff5252] transition-colors"
-                   >
-                     Enroll Now
-                   </button>
-                 )}
+                 <button 
+                   onClick={() => navigate('/boutique')}
+                   className="mt-4 px-8 py-3 bg-[#FF6B6B] text-white rounded-full font-black text-sm uppercase tracking-widest hover:bg-[#ff5252] transition-colors"
+                 >
+                   Enroll Now
+                 </button>
                </div>
              )}
           </div>
@@ -254,7 +281,7 @@ export default function CourseDetail({ onAddToCart }: CourseDetailProps) {
             {course.modules?.map((module, mIdx) => (
               <div key={module.id} className="border-b border-gray-200 last:border-b-0 bg-white">
                 <button
-                  onClick={() => toggleModule(module.id)}
+                  onClick={() => toggleModule(module.id.toString())}
                   className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors group"
                 >
                   <div className="flex items-center gap-4">

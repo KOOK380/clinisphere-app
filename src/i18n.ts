@@ -190,6 +190,12 @@ const resources = {
           secure: 'Transaction 100% Sécurisée',
           badge: 'Votre Sélection',
           backToStore: 'Retour à la boutique'
+        },
+        order: {
+          successTitle: 'Paiement Réussi !',
+          successDesc: 'Merci pour votre achat. Votre numéro de commande est #{{orderId}}.',
+          successEmail: 'Un email contenant les détails de votre commande vous a été envoyé.',
+          backDashboard: 'Aller au Tableau de Bord'
         }
       },
       courseDetail: {
@@ -404,6 +410,26 @@ const resources = {
           articles: 'Articles',
           backToSite: 'Retour au site',
           logout: 'Déconnexion'
+        },
+        orders: {
+          filterClient: 'Filtrer par client...',
+          allStatuses: 'Tous les statuts',
+          status: {
+            pending: 'En attente',
+            approved: 'Approuvé',
+            paid: 'Payé',
+            completed: 'Complété',
+            cancelled: 'Annulé'
+          },
+          reset: 'Réinitialiser',
+          billingAddress: 'Adresse de Facturation',
+          name: 'Nom',
+          address: 'Adresse',
+          city: 'Ville',
+          postalCode: 'Code Postal',
+          hideAddress: 'Masquer Adresse',
+          showAddress: 'Voir Adresse',
+          deleteOrder: 'Supprimer la commande'
         },
         settings: {
           title: 'Paramètres du site',
@@ -756,6 +782,12 @@ const resources = {
           secure: '100% Secure Transaction',
           badge: 'Your Selection',
           backToStore: 'Back to shop'
+        },
+        order: {
+          successTitle: 'Payment Successful!',
+          successDesc: 'Thank you for your purchase. Your order ID is #{{orderId}}.',
+          successEmail: 'An email with your order details has been sent to you.',
+          backDashboard: 'Go to My Dashboard'
         }
       },
       courseDetail: {
@@ -970,6 +1002,26 @@ const resources = {
           articles: 'Articles',
           backToSite: 'Back to site',
           logout: 'Logout'
+        },
+        orders: {
+          filterClient: 'Filter by client...',
+          allStatuses: 'All statuses',
+          status: {
+            pending: 'Pending',
+            approved: 'Approved',
+            paid: 'Paid',
+            completed: 'Completed',
+            cancelled: 'Cancelled'
+          },
+          reset: 'Reset',
+          billingAddress: 'Billing Address',
+          name: 'Name',
+          address: 'Address',
+          city: 'City',
+          postalCode: 'Postal Code',
+          hideAddress: 'Hide Address',
+          showAddress: 'Show Address',
+          deleteOrder: 'Delete Order'
         },
         settings: {
           title: 'Site Settings',

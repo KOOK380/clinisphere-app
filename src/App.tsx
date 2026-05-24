@@ -37,7 +37,13 @@ function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // A small timeout ensures that the jump happens after the new page renders
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'instant'
+      });
+    }, 0);
   }, [pathname]);
 
   return null;
@@ -177,7 +183,7 @@ export default function App() {
                     <Route path="/register" element={<Register onLogin={handleLogin} />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/checkout/success" element={<CheckoutSuccess />} />
+                    <Route path="/checkout/success" element={<CheckoutSuccess clearCart={clearCart} />} />
                     <Route path="/checkout/failure" element={<CheckoutFailure />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/terms-and-conditions" element={<Terms />} />
@@ -193,7 +199,7 @@ export default function App() {
                       path="/dashboard" 
                       element={
                         user ? (
-                          user.role === 'admin' ? <Navigate to="/admin" /> : <Dashboard user={user} />
+                          <Dashboard user={user} />
                         ) : (
                           <Navigate to="/login" />
                         )

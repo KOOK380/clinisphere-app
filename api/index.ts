@@ -570,14 +570,36 @@ const authenticateToken = async (req: any, res: any, next: any) => {
   });
 };
 
+const optionalAuthenticateToken = async (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return next();
+
+  const settings = await getStorageSettings();
+  const activeSecret = settings.jwt_secret || JWT_SECRET;
+
+  jwt.verify(token, activeSecret, (err: any, user: any) => {
+    if (!err) req.user = user;
+    next();
+  });
+};
+
 // Database Check Middleware
-const checkDb = (req: any, res: any, next: any) => {
+const checkDb = async (req: any, res: any, next: any) => {
   if (!pool) {
     return res.status(503).json({ 
       error: 'Database connection not initialized', 
       details: 'Please ensure POSTGRES_URL or DATABASE_URL is set in your Environment Variables.' 
     });
   }
+  
+  try {
+    await query(`ALTER TABLE courses ADD COLUMN IF NOT EXISTS title_en TEXT, ADD COLUMN IF NOT EXISTS title_fr TEXT, ADD COLUMN IF NOT EXISTS "shortDescription_en" TEXT, ADD COLUMN IF NOT EXISTS "shortDescription_fr" TEXT, ADD COLUMN IF NOT EXISTS "fullDescription_en" TEXT, ADD COLUMN IF NOT EXISTS "fullDescription_fr" TEXT;`).catch(() => {});
+    await query(`ALTER TABLE modules ADD COLUMN IF NOT EXISTS title_en TEXT, ADD COLUMN IF NOT EXISTS title_fr TEXT;`).catch(() => {});
+    await query(`ALTER TABLE lessons ADD COLUMN IF NOT EXISTS title_en TEXT, ADD COLUMN IF NOT EXISTS title_fr TEXT, ADD COLUMN IF NOT EXISTS description_en TEXT, ADD COLUMN IF NOT EXISTS description_fr TEXT;`).catch(() => {});
+  } catch(e) {}
+  
   next();
 };
 
@@ -734,7 +756,7 @@ const checkDb = (req: any, res: any, next: any) => {
     }
   });
 
-  app.get('/api/courses/:slug', checkDb, async (req, res) => {
+  app.get('/api/courses/:slug', optionalAuthenticateToken, checkDb, async (req: any, res) => {
     try {
       const isId = /^\d+$/.test(req.params.slug);
       const { rows: courseRows } = await query(
@@ -763,7 +785,23 @@ const checkDb = (req: any, res: any, next: any) => {
       }
 
       course.modules = modules;
-      res.json(course);
+
+      let isPurchased = false;
+      let orderStatus = null;
+      if (req.user) {
+        const { rows: orderRows } = await query(
+          'SELECT o.status FROM orders o JOIN order_items oi ON o.id = oi."orderId" WHERE o."userId" = $1 AND oi."courseId" = $2 ORDER BY o."createdAt" DESC LIMIT 1',
+          [req.user.userId, course.id]
+        );
+        if (orderRows.length > 0) {
+          orderStatus = orderRows[0].status;
+          if (['completed', 'paid', 'approved'].includes(orderStatus)) {
+            isPurchased = true;
+          }
+        }
+      }
+
+      res.json({ course, isPurchased, orderStatus });
     } catch (err: any) {
       console.error('Error fetching course:', err.message);
       res.status(500).json({ error: 'Failed to fetch course details' });
@@ -1234,7 +1272,7 @@ const checkDb = (req: any, res: any, next: any) => {
         const checkoutData = {
             amount: totalPrice,
             currency: "dzd",
-            success_url: `${protocol}://${hostname}/dashboard?payment=success&order_id=${orderId}`,
+            success_url: `${protocol}://${hostname}/checkout/success?order_id=${orderId}`,
             failure_url: `${protocol}://${hostname}/checkout/failure?order_id=${orderId}`,
             webhook_endpoint: `${protocol}://${hostname}/api/webhooks/chargily`,
             metadata: [
@@ -1279,7 +1317,7 @@ const checkDb = (req: any, res: any, next: any) => {
 
   app.get('/api/my-courses', authenticateToken, checkDb, async (req: any, res) => {
     try {
-      const { rows: orders } = await query('SELECT id FROM orders WHERE "userId" = $1', [req.user.userId]);
+      const { rows: orders } = await query('SELECT id FROM orders WHERE "userId" = $1 AND status IN ($2, $3, $4)', [req.user.userId, 'completed', 'paid', 'approved']);
       if (!orders || orders.length === 0) return res.json([]);
       
       const orderIds = orders.map((o: any) => o.id);

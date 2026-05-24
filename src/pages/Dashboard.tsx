@@ -121,7 +121,7 @@ export default function Dashboard({ user }: DashboardProps) {
                 transition={{ delay: i * 0.1 }}
                 className="group bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-md hover:shadow-2xl transition-all h-full flex flex-col"
               >
-                <div className="relative h-56 overflow-hidden">
+                <Link to={`/formations/${course.slug || course.id}`} className="relative h-56 overflow-hidden block">
                   <img 
                     src={course.thumbnail || undefined} 
                     alt={course.title}
@@ -137,12 +137,12 @@ export default function Dashboard({ user }: DashboardProps) {
                       {course.category}
                     </span>
                   </div>
-                </div>
+                </Link>
 
                 <div className="p-8 flex-grow flex flex-col">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4 leading-tight group-hover:text-[#3B2A8F] transition-colors line-clamp-2">
+                  <Link to={`/formations/${course.slug || course.id}`} className="text-xl font-bold text-gray-900 mb-4 leading-tight group-hover:text-[#3B2A8F] transition-colors line-clamp-2">
                     {course.title}
-                  </h3>
+                  </Link>
                   
                   <div className="flex items-center gap-6 mt-auto pt-6 border-t border-gray-50">
                     <div className="flex items-center gap-2 text-gray-400 text-[10px] font-bold uppercase tracking-widest">
@@ -155,11 +155,12 @@ export default function Dashboard({ user }: DashboardProps) {
                     </div>
                   </div>
 
-                  <div 
-                    className="mt-8 w-full bg-gray-900 text-white py-4 rounded-2xl text-center text-xs font-black uppercase tracking-widest hover:bg-[#3B2A8F] transition-all shadow-lg active:scale-95 cursor-pointer"
+                  <Link 
+                    to={`/formations/${course.slug || course.id}`}
+                    className="block mt-8 w-full bg-gray-900 text-white py-4 rounded-2xl text-center text-xs font-black uppercase tracking-widest hover:bg-[#3B2A8F] transition-all shadow-lg active:scale-95 cursor-pointer"
                   >
                     {t('dashboard.continue')}
-                  </div>
+                  </Link>
                 </div>
               </motion.div>
             ))}

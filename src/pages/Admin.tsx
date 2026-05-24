@@ -793,8 +793,14 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                             {settings.currencySymbol}
                           </td>
                           <td className="py-3 px-4">
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-50 text-green-600">
-                              {t("admin.common.completed")}
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              order.status === 'pending' ? 'bg-yellow-50 text-yellow-600' :
+                              order.status === 'approved' ? 'bg-blue-50 text-blue-600' :
+                              order.status === 'paid' ? 'bg-green-50 text-green-600' :
+                              order.status === 'completed' ? 'bg-teal-50 text-teal-600' :
+                              'bg-red-50 text-red-600'
+                            }`}>
+                              {t(`admin.orders.status.${order.status}`) || order.status}
                             </span>
                           </td>
                         </tr>
@@ -1331,7 +1337,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                 <div className="flex gap-4 flex-wrap">
                   <input
                     type="text"
-                    placeholder="Filtrer par client..."
+                    placeholder={t("admin.orders.filterClient")}
                     value={orderClientFilter}
                     onChange={(e) => setOrderClientFilter(e.target.value)}
                     className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent outline-none w-64 text-sm"
@@ -1341,12 +1347,12 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     onChange={(e) => setOrderStatusFilter(e.target.value)}
                     className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1E3A8A] focus:border-transparent outline-none text-sm"
                   >
-                    <option value="all">Tous les statuts</option>
-                    <option value="pending">En attente</option>
-                    <option value="approved">Approuvé</option>
-                    <option value="paid">Payé</option>
-                    <option value="completed">Complété</option>
-                    <option value="cancelled">Annulé</option>
+                    <option value="all">{t("admin.orders.allStatuses")}</option>
+                    <option value="pending">{t("admin.orders.status.pending")}</option>
+                    <option value="approved">{t("admin.orders.status.approved")}</option>
+                    <option value="paid">{t("admin.orders.status.paid")}</option>
+                    <option value="completed">{t("admin.orders.status.completed")}</option>
+                    <option value="cancelled">{t("admin.orders.status.cancelled")}</option>
                   </select>
                   <input
                     type="date"
@@ -1360,7 +1366,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     onClick={() => { setOrderClientFilter(""); setOrderStatusFilter("all"); setOrderDateFilter(""); }} 
                     className="text-blue-600 hover:text-blue-800 text-sm font-medium px-4 py-2 bg-blue-50 rounded-lg"
                   >
-                    Réinitialiser
+                    {t("admin.orders.reset")}
                   </button>
                 )}
               </div>
@@ -1372,7 +1378,7 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                     <th className="p-4">{t("admin.common.amount")}</th>
                     <th className="p-4">{t("admin.common.date")}</th>
                     <th className="p-4">{t("admin.common.statusLabel")}</th>
-                    <th className="p-4 text-right">Actions</th>
+                    <th className="p-4 text-right">{t("admin.common.actions") || "Actions"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1416,11 +1422,11 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                                 'bg-red-50 text-red-700 border-red-200'
                             }`}
                            >
-                            <option value="pending" className="bg-white text-gray-900">En attente</option>
-                            <option value="approved" className="bg-white text-gray-900">Approuvé</option>
-                            <option value="paid" className="bg-white text-gray-900">Payé</option>
-                            <option value="completed" className="bg-white text-gray-900">Complété</option>
-                            <option value="cancelled" className="bg-white text-gray-900">Annulé</option>
+                            <option value="pending" className="bg-white text-gray-900">{t("admin.orders.status.pending")}</option>
+                            <option value="approved" className="bg-white text-gray-900">{t("admin.orders.status.approved")}</option>
+                            <option value="paid" className="bg-white text-gray-900">{t("admin.orders.status.paid")}</option>
+                            <option value="completed" className="bg-white text-gray-900">{t("admin.orders.status.completed")}</option>
+                            <option value="cancelled" className="bg-white text-gray-900">{t("admin.orders.status.cancelled")}</option>
                            </select>
                         </td>
                         <td className="p-4 text-right">
@@ -1430,13 +1436,13 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                                 onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
                                 className="text-xs px-2 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md font-medium transition-colors"
                               >
-                                {expandedOrderId === order.id ? "Masquer Adresse" : "Voir Adresse"}
+                                {expandedOrderId === order.id ? t("admin.orders.hideAddress") : t("admin.orders.showAddress")}
                               </button>
                             )}
                             <button
                               onClick={() => handleDeleteOrder(order.id)}
                               className="p-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-md transition-colors"
-                              title="Supprimer la commande"
+                              title={t("admin.orders.deleteOrder")}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -1447,11 +1453,11 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                         <tr className="bg-gray-50/50">
                           <td colSpan={6} className="p-4">
                             <div className="p-4 bg-white border border-gray-100 rounded-xl max-w-lg shadow-sm">
-                              <h4 className="text-sm font-bold text-gray-900 mb-2">Adresse de Facturation</h4>
-                              <p className="text-sm text-gray-600"><strong>Nom:</strong> {billing.fullName}</p>
-                              <p className="text-sm text-gray-600"><strong>Adresse:</strong> {billing.address}</p>
-                              <p className="text-sm text-gray-600"><strong>Ville:</strong> {billing.city}</p>
-                              <p className="text-sm text-gray-600"><strong>Code Postal:</strong> {billing.postalCode}</p>
+                              <h4 className="text-sm font-bold text-gray-900 mb-2">{t("admin.orders.billingAddress")}</h4>
+                              <p className="text-sm text-gray-600"><strong>{t("admin.orders.name")}:</strong> {billing.fullName}</p>
+                              <p className="text-sm text-gray-600"><strong>{t("admin.orders.address")}:</strong> {billing.address}</p>
+                              <p className="text-sm text-gray-600"><strong>{t("admin.orders.city")}:</strong> {billing.city}</p>
+                              <p className="text-sm text-gray-600"><strong>{t("admin.orders.postalCode")}:</strong> {billing.postalCode}</p>
                             </div>
                           </td>
                         </tr>

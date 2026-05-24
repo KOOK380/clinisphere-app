@@ -64,8 +64,8 @@ const AdminCourseEdit = ({ onLogout }: { onLogout: () => void }) => {
       if (id && id !== "new") {
         const courseRes = await fetch(`/api/courses/${id}`);
         if (courseRes.ok) {
-          const course = await courseRes.json();
-          setCourseData(course);
+          const data = await courseRes.json();
+          setCourseData(data.course || data);
         } else {
           toast.error(t('admin.courses.loadError'));
           navigate("/admin");

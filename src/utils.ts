@@ -1,18 +1,36 @@
 export const getEmbedUrl = (url: string) => {
   if (!url) return '';
   
-  // YouTube
-  const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/);
-  if (ytMatch) {
-    const id = ytMatch[1].split('&')[0];
-    return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}`;
-  }
+  try {
+    // YouTube
+    const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+    if (isYoutube) {
+      let videoId = '';
+      if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      } else if (url.includes('youtube.com/watch')) {
+        videoId = new URL(url).searchParams.get('v') || '';
+      } else if (url.includes('youtube.com/embed/')) {
+        return url; // Assume it already has the correct parameters if passed as embed
+      } else if (url.includes('youtube.com/shorts/')) {
+        videoId = url.split('youtube.com/shorts/')[1]?.split('?')[0];
+      } else if (url.includes('youtube.com/live/')) {
+        videoId = url.split('youtube.com/live/')[1]?.split('?')[0];
+      }
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
+      }
+    }
 
-  // Vimeo
-  const vimeoMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:vimeo\.com)\/(.+)/);
-  if (vimeoMatch) {
-    const id = vimeoMatch[1].split('?')[0];
-    return `https://player.vimeo.com/video/${id}?autoplay=1&muted=1&loop=1&background=1`;
+    // Vimeo
+    const isVimeo = url.includes('vimeo.com');
+    if (isVimeo) {
+      const parts = url.split('/');
+      const id = parts[parts.length - 1].split('?')[0];
+      return `https://player.vimeo.com/video/${id}?autoplay=1&muted=1&loop=1&background=1`;
+    }
+  } catch (error) {
+    console.error("Error parsing video URL:", error);
   }
 
   return url;

@@ -132,6 +132,14 @@ export default function Navbar({ cartCount, user, onLogout }: NavbarProps) {
 
                 {user ? (
                   <div className="flex items-center space-x-6">
+                    {user.role === 'admin' && (
+                      <Link 
+                        to="/dashboard"
+                        className="text-[#3B2A8F] font-black uppercase text-[10px] tracking-widest px-4 py-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all active:scale-95"
+                      >
+                       {t('navbar.dashboard')}
+                      </Link>
+                    )}
                     <Link 
                       to={user.role === 'admin' ? "/admin" : "/dashboard"} 
                       className="text-[#3B2A8F] font-black uppercase text-[10px] tracking-widest px-4 py-2 bg-[#3B2A8F]/5 rounded-xl hover:bg-[#3B2A8F] hover:text-white transition-all active:scale-95"
@@ -228,7 +236,17 @@ export default function Navbar({ cartCount, user, onLogout }: NavbarProps) {
               {!user ? (
                 <Link to="/login" onClick={() => setIsOpen(false)} className="block w-full bg-black text-white text-center py-4 rounded-xl font-bold">{t('navbar.login')}</Link>
               ) : (
-                <button onClick={() => { onLogout(); setIsOpen(false); }} className="block w-full bg-black text-white text-center py-4 rounded-xl font-bold">{t('navbar.logout')}</button>
+                <div className="flex flex-col space-y-4">
+                  {user.role === 'admin' && (
+                    <Link to="/dashboard" onClick={() => setIsOpen(false)} className="block w-full border-2 border-black text-black text-center py-4 rounded-xl font-bold">{t('navbar.dashboard')}</Link>
+                  )}
+                  {user.role === 'admin' ? (
+                    <Link to="/admin" onClick={() => setIsOpen(false)} className="block w-full bg-[#3B2A8F] text-white text-center py-4 rounded-xl font-bold">{t('navbar.admin')}</Link>
+                  ) : (
+                    <Link to="/dashboard" onClick={() => setIsOpen(false)} className="block w-full bg-[#3B2A8F] text-white text-center py-4 rounded-xl font-bold">{t('navbar.dashboard')}</Link>
+                  )}
+                  <button onClick={() => { onLogout(); setIsOpen(false); }} className="block w-full bg-black text-white text-center py-4 rounded-xl font-bold">{t('navbar.logout')}</button>
+                </div>
               )}
             </div>
           </motion.div>
