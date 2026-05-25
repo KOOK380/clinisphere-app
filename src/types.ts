@@ -83,6 +83,8 @@ export interface AppSettings {
   sliderButton2Text: string;
   sliderButton2Link: string;
   sliderButton2Enabled: boolean;
+  // Settings
+  require_register_otp?: string;
   // Storage settings
   storage_provider?: 'supabase' | 's3' | 'bunny' | 'gcs' | 'backblaze' | 'local';
   s3_access_key?: string;

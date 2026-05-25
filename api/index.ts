@@ -48,6 +48,9 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
+import { initDb } from './db-init.ts';
+initDb(pool).catch(console.error);
+
 // Database is connected lazily by the pg Pool upon first query.
 // No eager connection test is performed to prevent Vercel Build Step crashes and cold start issues.
 
@@ -146,6 +149,10 @@ async function sendEmail(to: string, templateKey: string, variables: any) {
     const { rows: settingsRows } = await query("SELECT key, value FROM settings WHERE key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from')");
     const settings: any = {};
     if (settingsRows) settingsRows.forEach(r => settings[r.key] = r.value);
+
+    // Automatically inject app_url if available
+    const app_url = process.env.VITE_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    variables['app_url'] = app_url;
 
     if (!settings.smtp_host || !settings.smtp_user || !settings.smtp_pass) {
       console.warn('SMTP not configured, skipping email to', to);
@@ -604,9 +611,51 @@ const checkDb = async (req: any, res: any, next: any) => {
 };
 
 // Auth Routes
+  app.post('/api/auth/send-register-otp', checkDb, async (req, res) => {
+    try {
+      const { email } = req.body;
+      const { rows } = await query('SELECT * FROM users WHERE email = $1', [email]);
+      if (rows && rows.length > 0) {
+        return res.status(400).json({ error: 'Email already registered' });
+      }
+
+      const settings = await getStorageSettings();
+      if (settings.require_register_otp === 'false') {
+        return res.json({ success: true, skipOtp: true });
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+
+      await query(
+        'INSERT INTO otps (email, otp, expires_at, type) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO UPDATE SET otp = EXCLUDED.otp, expires_at = EXCLUDED.expires_at, type = EXCLUDED.type',
+        [email, otp, expiresAt, 'register']
+      );
+
+      await sendEmail(email, 'register_otp', { otp });
+      res.json({ success: true, message: 'OTP sent to email' });
+    } catch (error: any) {
+      console.error('Send OTP error:', error);
+      res.status(500).json({ error: 'Failed to send OTP' });
+    }
+  });
+
   app.post('/api/auth/register', checkDb, async (req, res) => {
     try {
-      const { name, email, password, specialty, city, phone } = req.body;
+      const { name, email, password, specialty, city, phone, otp } = req.body;
+      
+      const settings = await getStorageSettings();
+      if (settings.require_register_otp !== 'false') {
+        const { rows: otpRows } = await query('SELECT * FROM otps WHERE email = $1 AND type = $2', [email, 'register']);
+        if (!otpRows || otpRows.length === 0 || otpRows[0].otp !== otp) {
+          return res.status(400).json({ error: 'Invalid OTP' });
+        }
+        if (new Date(otpRows[0].expires_at) < new Date()) {
+          return res.status(400).json({ error: 'OTP has expired' });
+        }
+        await query('DELETE FROM otps WHERE email = $1 AND type = $2', [email, 'register']);
+      }
+
       const hashedPassword = await bcrypt.hash(password, 10);
       
       const { rows: userRows } = await query(
@@ -617,7 +666,6 @@ const checkDb = async (req: any, res: any, next: any) => {
       const user = userRows?.[0];
       if (!user) throw new Error('Failed to create user');
 
-      const settings = await getStorageSettings();
       const activeSecret = settings.jwt_secret || JWT_SECRET;
       const token = jwt.sign({ userId: user.id, role: user.role }, activeSecret);
       res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
@@ -1204,8 +1252,28 @@ const checkDb = async (req: any, res: any, next: any) => {
             const { rows: userRows } = await query('SELECT * FROM users WHERE id = $1', [orderRows[0].userId]);
             if (userRows && userRows.length > 0) {
               const userEmail = userRows[0].email;
-              await sendEmail(userEmail, 'order_confirm', { name: userRows[0].name, order_id: orderId });
-              await sendEmail(userEmail, 'thank_you', { name: userRows[0].name });
+              
+              // Get item details
+              const { rows: itemRows } = await query(`
+                SELECT oi.price, oi."itemType", 
+                       c.title as course_title, e.title_en as event_title
+                FROM order_items oi
+                LEFT JOIN courses c ON oi."courseId" = c.id
+                LEFT JOIN events e ON oi."eventId" = e.id
+                WHERE oi."orderId" = $1
+              `, [orderId]);
+              let item_details = '';
+              if (itemRows) {
+                itemRows.forEach(r => {
+                  const title = r.itemType === 'course' ? r.course_title : r.event_title;
+                  item_details += `<li>${title || 'Item'} - ${r.price || '0.00'}</li>`;
+                });
+              }
+
+              const total_price = orderRows[0].totalPrice || '0.00';
+
+              await sendEmail(userEmail, 'order_confirm', { name: userRows[0].name, order_id: orderId, item_details, total_price });
+              await sendEmail(userEmail, 'thank_you', { name: userRows[0].name, order_id: orderId, item_details, total_price });
             }
           }
         }
@@ -1305,8 +1373,27 @@ const checkDb = async (req: any, res: any, next: any) => {
       
       // Fallback if no chargily
       await query('UPDATE orders SET status = $1 WHERE id = $2', ['completed', orderId]);
-      await sendEmail(req.user.email, 'order_confirm', { name: req.user.name || req.user.email, order_id: orderId });
-      await sendEmail(req.user.email, 'thank_you', { name: req.user.name || req.user.email });
+      
+      const { rows: itemRows } = await query(`
+        SELECT oi.price, oi."itemType", 
+               c.title as course_title, e.title_en as event_title
+        FROM order_items oi
+        LEFT JOIN courses c ON oi."courseId" = c.id
+        LEFT JOIN events e ON oi."eventId" = e.id
+        WHERE oi."orderId" = $1
+      `, [orderId]);
+      let item_details = '';
+      if (itemRows) {
+        itemRows.forEach(r => {
+          const title = r.itemType === 'course' ? r.course_title : r.event_title;
+          item_details += `<li>${title || 'Item'} - ${r.price || '0.00'}</li>`;
+        });
+      }
+      
+      const total_price = orderRows?.[0]?.totalPrice || totalPrice || '0.00';
+
+      await sendEmail(req.user.email, 'order_confirm', { name: req.user.name || req.user.email, order_id: orderId, item_details, total_price });
+      await sendEmail(req.user.email, 'thank_you', { name: req.user.name || req.user.email, order_id: orderId, item_details, total_price });
       
       res.json(orderRows?.[0]);
     } catch (error) {

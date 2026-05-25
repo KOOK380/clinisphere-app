@@ -17,13 +17,44 @@ export default function Register({ onLogin }: RegisterProps) {
     specialty: '',
     city: '',
     phone: '',
+    otp: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<'details' | 'otp'>('details');
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/send-register-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+
+      if (data.skipOtp) {
+        // Option to just do the registration call directly
+        // We can just construct a mock event to pass to handleVerifyOtp
+        await handleVerifyOtp(e);
+      } else {
+        setStep('otp');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -68,7 +99,7 @@ export default function Register({ onLogin }: RegisterProps) {
              </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="px-6 md:px-16 py-10 md:py-20 space-y-12">
+          <form onSubmit={step === 'details' ? handleSendOtp : handleVerifyOtp} className="px-6 md:px-16 py-10 md:py-20 space-y-12">
             {error && (
               <div className="bg-red-50 text-red-600 p-8 rounded-3xl text-sm flex items-center space-x-4 border border-red-100 font-black">
                 <AlertCircle className="w-8 h-8 flex-shrink-0" />
@@ -76,30 +107,54 @@ export default function Register({ onLogin }: RegisterProps) {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-              {/* Fields */}
-              {[
-                { name: 'name', label: t('auth.register.form.name'), placeholder: t('auth.register.form.namePlaceholder'), type: 'text' },
-                { name: 'email', label: t('auth.register.form.email'), placeholder: t('auth.register.form.emailPlaceholder'), type: 'email' },
-                { name: 'specialty', label: t('auth.register.form.specialty'), placeholder: t('auth.register.form.specialtyPlaceholder'), type: 'text' },
-                { name: 'city', label: t('auth.register.form.city'), placeholder: t('auth.register.form.cityPlaceholder'), type: 'text' },
-                { name: 'phone', label: t('auth.register.form.phone'), placeholder: t('auth.register.form.phonePlaceholder'), type: 'tel' },
-                { name: 'password', label: t('auth.register.form.password'), placeholder: t('auth.register.form.passwordPlaceholder'), type: 'password' }
-              ].map((field) => (
-                <div key={field.name} className="space-y-4">
-                  <label className="text-[10px] font-black text-[#3B2A8F]/40 uppercase tracking-[0.3em] pl-2">{field.label}</label>
-                  <input
-                    type={field.type}
-                    name={field.name}
-                    required
-                    value={(formData as any)[field.name] || ""}
-                    onChange={handleChange}
-                    className="block w-full px-8 py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#3B2A8F]/5 focus:bg-white transition-all text-[#3B2A8F] font-black placeholder:text-gray-300 placeholder:font-black placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
-                    placeholder={field.placeholder}
-                  />
-                </div>
-              ))}
-            </div>
+            {step === 'details' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                {/* Fields */}
+                {[
+                  { name: 'name', label: t('auth.register.form.name'), placeholder: t('auth.register.form.namePlaceholder'), type: 'text' },
+                  { name: 'email', label: t('auth.register.form.email'), placeholder: t('auth.register.form.emailPlaceholder'), type: 'email' },
+                  { name: 'specialty', label: t('auth.register.form.specialty'), placeholder: t('auth.register.form.specialtyPlaceholder'), type: 'text' },
+                  { name: 'city', label: t('auth.register.form.city'), placeholder: t('auth.register.form.cityPlaceholder'), type: 'text' },
+                  { name: 'phone', label: t('auth.register.form.phone'), placeholder: t('auth.register.form.phonePlaceholder'), type: 'tel' },
+                  { name: 'password', label: t('auth.register.form.password'), placeholder: t('auth.register.form.passwordPlaceholder'), type: 'password' }
+                ].map((field) => (
+                  <div key={field.name} className="space-y-4">
+                    <label className="text-[10px] font-black text-[#3B2A8F]/40 uppercase tracking-[0.3em] pl-2">{field.label}</label>
+                    <input
+                      type={field.type}
+                      name={field.name}
+                      required
+                      value={(formData as any)[field.name] || ""}
+                      onChange={handleChange}
+                      className="block w-full px-8 py-6 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#3B2A8F]/5 focus:bg-white transition-all text-[#3B2A8F] font-black placeholder:text-gray-300 placeholder:font-black placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
+                      placeholder={field.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-[#3B2A8F]/40 uppercase tracking-[0.3em] pl-2">Enter Verification Code</label>
+                <input
+                  type="text"
+                  name="otp"
+                  required
+                  value={formData.otp}
+                  onChange={handleChange}
+                  className="block w-full px-8 py-6 text-center text-2xl tracking-[0.5em] bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#3B2A8F]/5 focus:bg-white transition-all text-[#3B2A8F] font-black placeholder:text-gray-300 placeholder:font-black placeholder:uppercase placeholder:text-[10px] placeholder:tracking-widest"
+                  placeholder="------"
+                  maxLength={6}
+                />
+                <p className="text-center text-xs text-gray-400 mt-4">We've sent a code to {formData.email}</p>
+                <button 
+                  type="button" 
+                  onClick={() => setStep('details')}
+                  className="w-full text-center text-[#3B2A8F] font-bold text-xs mt-2 hover:underline"
+                >
+                  Change Email
+                </button>
+              </div>
+            )}
 
             <div className="pt-8">
               <button
@@ -107,7 +162,7 @@ export default function Register({ onLogin }: RegisterProps) {
                 disabled={loading}
                 className="w-full bg-[#3B2A8F] text-white py-8 rounded-[2rem] font-black uppercase tracking-widest text-[13px] flex items-center justify-center space-x-6 hover:bg-[#2d1f70] transition-all shadow-3xl shadow-[#3B2A8F]/20 active:scale-95 disabled:opacity-50"
               >
-                <span>{loading ? t('auth.register.loading') : t('auth.register.button')}</span>
+                <span>{loading ? t('auth.register.loading') : (step === 'details' ? 'Next: Verify Email' : 'Complete Registration')}</span>
                 <UserPlus className="w-6 h-6" />
               </button>
             </div>

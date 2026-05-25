@@ -23,6 +23,8 @@ import {
   Globe,
   GraduationCap,
   Save,
+  Mail,
+  UserPlus,
   Upload,
   Video,
   FileText,
@@ -658,9 +660,10 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
       icon: GraduationCap,
     },
     { id: "settings", label: t("admin.sidebar.settings"), icon: SettingsIcon },
-    { id: "orders", label: t("admin.sidebar.orders"), icon: ShoppingBag },
     { id: "users", label: t("admin.sidebar.users"), icon: Users },
+    { id: "orders", label: t("admin.sidebar.orders"), icon: ShoppingBag },
     { id: "announcements", label: "Notifications & Meets", icon: MessageSquare },
+    { id: "email_templates", label: "Email Templates", icon: Mail },
   ];
 
   const changeLanguage = (lng: string) => {
@@ -1537,6 +1540,30 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-8"
             >
+              {/* Registration Settings */}
+              <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-xl font-bold mb-6 flex items-center">
+                  <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mr-3">
+                    <UserPlus size={18} />
+                  </span>
+                  Registration Settings
+                </h3>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={settingsData.require_register_otp !== 'false'}
+                    onChange={(e) =>
+                      setSettingsData({
+                        ...settingsData,
+                        require_register_otp: e.target.checked ? 'true' : 'false'
+                      })
+                    }
+                    className="w-5 h-5 text-blue-600 rounded cursor-pointer"
+                  />
+                  <label className="text-sm font-medium text-gray-700">Require OTP Verification on Registration</label>
+                </div>
+              </div>
+
               {/* Currency Settings */}
               <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
                 <h3 className="text-xl font-bold mb-6 flex items-center">
