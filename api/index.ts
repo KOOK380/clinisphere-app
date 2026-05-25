@@ -16,6 +16,7 @@ import { Storage } from '@google-cloud/storage';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import axios from 'axios';
+import { initDb } from './db-init.js';
 
 dotenv.config();
 
@@ -48,7 +49,6 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
-import { initDb } from './db-init.ts';
 initDb(pool).catch(console.error);
 
 // Database is connected lazily by the pg Pool upon first query.
