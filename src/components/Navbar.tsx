@@ -106,6 +106,7 @@ export default function Navbar({ cartCount, user, onLogout }: NavbarProps) {
               <Link to="/events" className={navLinkClass('/events')}>{t('navbar.events')}</Link>
               <Link to="/articles" className={navLinkClass('/articles')}>{t('navbar.articles')}</Link>
               <Link to="/services" className={navLinkClass('/services')}>{t('navbar.services')}</Link>
+              <Link to="/about" className={navLinkClass('/about')}>{t('navbar.about')}</Link>
               <Link to="/contact" className={navLinkClass('/contact')}>{t('navbar.contact')}</Link>
             </div>
 
@@ -189,6 +190,7 @@ export default function Navbar({ cartCount, user, onLogout }: NavbarProps) {
               <Link to="/events" onClick={() => setIsOpen(false)}>{t('navbar.events')}</Link>
               <Link to="/articles" onClick={() => setIsOpen(false)}>{t('navbar.articles')}</Link>
               <Link to="/services" onClick={() => setIsOpen(false)}>{t('navbar.services')}</Link>
+              <Link to="/about" onClick={() => setIsOpen(false)}>{t('navbar.about')}</Link>
               <Link to="/contact" onClick={() => setIsOpen(false)}>{t('navbar.contact')}</Link>
               <button 
                 onClick={toggleLanguage}

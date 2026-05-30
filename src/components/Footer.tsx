@@ -66,6 +66,7 @@ export default function Footer() {
             <ul className="space-y-4">
               <li><Link to="/formations" className="text-white/80 hover:text-white text-sm transition-colors font-medium">{t('navbar.formations')}</Link></li>
               <li><Link to="/services" className="text-white/80 hover:text-white text-sm transition-colors font-medium">{t('navbar.services')}</Link></li>
+              <li><Link to="/about" className="text-white/80 hover:text-white text-sm transition-colors font-medium">{t('navbar.about')}</Link></li>
             </ul>
           </div>
 

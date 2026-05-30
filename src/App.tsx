@@ -29,6 +29,7 @@ import ArticleDetail from './pages/ArticleDetail';
 import CourseDetail from './pages/CourseDetail';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
+import About from './pages/About';
 import FloatingChat from './components/FloatingChat';
 import { Toaster } from 'react-hot-toast';
 import { Course, CartItem, User } from './types';
@@ -186,6 +187,7 @@ export default function App() {
                     <Route path="/checkout/success" element={<CheckoutSuccess clearCart={clearCart} />} />
                     <Route path="/checkout/failure" element={<CheckoutFailure />} />
                     <Route path="/contact" element={<Contact />} />
+                    <Route path="/about" element={<About />} />
                     <Route path="/terms-and-conditions" element={<Terms />} />
                     <Route path="/privacy-policy" element={<Privacy />} />
                     <Route path="/services" element={<Services />} />

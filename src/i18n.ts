@@ -12,6 +12,7 @@ const resources = {
         events: 'Événements',
         eventsSubtitle: 'Explorez les ateliers, séminaires et événements médicaux à venir',
         services: 'Services',
+        about: 'À propos',
         articles: 'Articles',
         contact: 'Contact',
         login: 'Se Connecter / S\'inscrire',
@@ -210,6 +211,10 @@ const resources = {
         noDescription: 'Aucune description disponible',
         yourInstructor: 'Votre Formateur',
         curriculum: 'Sommaire du Cours'
+      },
+      aboutPage: {
+        title: 'À propos',
+        desc: 'Bienvenue sur notre plateforme. Nous nous engageons à vous offrir la meilleure expérience.'
       },
       auth: {
         login: {
@@ -604,6 +609,7 @@ const resources = {
         events: 'Events',
         eventsSubtitle: 'Explore upcoming workshops, seminars, and medical events',
         services: 'Services',
+        about: 'About Us',
         articles: 'Articles',
         contact: 'Contact',
         login: 'Login / Register',
@@ -802,6 +808,10 @@ const resources = {
         noDescription: 'No description available',
         yourInstructor: 'Your Instructor',
         curriculum: 'Course Curriculum'
+      },
+      aboutPage: {
+        title: 'About Us',
+        desc: 'Welcome to our platform. We are dedicated to providing the best experience.'
       },
       auth: {
         login: {

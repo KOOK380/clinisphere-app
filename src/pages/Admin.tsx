@@ -2325,6 +2325,16 @@ export default function Admin({ onLogout }: { onLogout: () => void }) {
                       placeholder="<h1>Privacy Policy</h1><p>We respect your privacy...</p>"
                     />
                   </div>
+                  <div className="col-span-full mt-4 border-t border-gray-100 pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">About Us (HTML/Text)</label>
+                    <textarea
+                      rows={10}
+                      value={settingsData.about_us_html || ""}
+                      onChange={(e) => setSettingsData({ ...settingsData, about_us_html: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"
+                      placeholder="<h1>About Us</h1><p>Welcome to our platform...</p>"
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-end mt-6">
                   <button
